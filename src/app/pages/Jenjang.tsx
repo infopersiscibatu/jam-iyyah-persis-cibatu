@@ -222,7 +222,7 @@ export function HalamanJenjangDetail({
                       <div className="min-w-0 flex-1">
                         <h3 className="font-header text-[13px] leading-snug font-extrabold text-ink-900">{u.nama}</h3>
                         <p className="mt-1 text-[10.5px] leading-snug text-ink-600">
-                          {j.pimpinan}: {u.pimpinan}
+                          {j.istilah.pimpinanUnit}: {u.pimpinan}
                         </p>
                         <p className="mt-2 flex flex-wrap gap-1.5">
                           <span className="rounded-full bg-cream-100 px-2.5 py-1 text-[10px] font-semibold text-persis-900">
