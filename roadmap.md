@@ -1,5 +1,5 @@
 # Roadmap migrasi
-- [ ] Perbaiki sebutan kepala sekolah pada daftar dan identitas sekolah/kampus
+- [x] Perbaiki sebutan kepala sekolah pada daftar dan identitas sekolah/kampus
 - [ ] Perkecil ikon PWA dan hilangkan latar kotak pada ikon splash
 - [x] Tambahkan banner notifikasi masuk dengan animasi jatuh dari atas
 - [x] Sediakan tautan publik dengan pratinjau gambar konten seperti WordPress
