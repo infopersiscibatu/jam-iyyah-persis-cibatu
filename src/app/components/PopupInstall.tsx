@@ -7,7 +7,7 @@ import { useProfil } from "../lib/profil";
  * Muncul sekali saat pengunjung baru membuka situs, hanya bila browser
  * mendukung pemasangan PWA (event beforeinstallprompt) dan aplikasi belum
  * terpasang. Pilihan pengunjung diingat: bila ditutup, popup tidak muncul
- * lagi selama 7 hari; bila sudah terpasang, tidak pernah muncul lagi.
+ * lagi selama 1 hari; bila sudah terpasang, tidak pernah muncul lagi.
  *
  * Tidak ada layar loading tambahan: popup ini tampil di atas halaman yang
  * sudah selesai dimuat, bukan sebelumnya.
@@ -19,7 +19,7 @@ type BeforeInstallPromptEvent = Event & {
 };
 
 const KUNCI_SIMPAN = "persis-popup-install";
-const TUNGGU_HARI = 7;
+const TUNGGU_HARI = 1;
 
 function bacaTanda(): { tutup: number } | null {
   try {
