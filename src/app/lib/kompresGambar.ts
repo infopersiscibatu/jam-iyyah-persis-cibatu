@@ -66,7 +66,7 @@ export async function kompresGambar(berkas: File): Promise<File> {
         }
         break;
       }
-      if (panjang <= batas) break;
+      if (panjang <= 1280) break;
     }
     if (!terbaik || terbaik.size >= berkas.size) return berkas;
     const ekstensi = terbaik.type === "image/webp" ? "webp" : terbaik.type === "image/jpeg" ? "jpg" : "png";

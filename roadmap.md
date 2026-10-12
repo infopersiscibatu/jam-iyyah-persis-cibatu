@@ -1,5 +1,5 @@
 # Roadmap migrasi
-- [ ] Kompres semua unggahan gambar dengan sasaran 30–50 KB dan pertahankan ketajaman semaksimal mungkin
+- [x] Kompres semua unggahan gambar dengan sasaran 30–50 KB dan pertahankan ketajaman semaksimal mungkin
 - [x] Percepat pemuatan data dan penyegaran perubahan di halaman publik
 - [x] Perbaiki sebutan kepala sekolah pada daftar dan identitas sekolah/kampus
 - [ ] Perkecil ikon PWA dan hilangkan latar kotak pada ikon splash
