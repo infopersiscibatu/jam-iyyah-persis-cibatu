@@ -33,7 +33,7 @@ export function HalamanSekolah({
     String(u.akreditasi) === "Program Khusus" ? String(u.akreditasi) : `Akreditasi ${u.akreditasi}`;
 
   const identitas: [string, string][] = [
-    [j.pimpinan, u.pimpinan],
+    [j.istilah.pimpinanUnit, u.pimpinan],
     [j.istilah.kode, u.npsn],
     ["Status", u.status || j.istilah.status],
     ["Akreditasi", labelAkreditasi],
