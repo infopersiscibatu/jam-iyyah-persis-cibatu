@@ -217,13 +217,17 @@ function kabari() {
   for (const dengar of pendengar) dengar(keadaan);
 }
 
+export function terapkanBeranda(j: Jawaban) {
+  keadaan = gabung(j);
+  kabari();
+}
+
 export function segarkanBeranda(): Promise<BerandaGabungan> {
   if (janji) return janji;
   janji = fetch("/api/beranda", { headers: { Accept: "application/json" } })
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Layanan menjawab ${r.status}`))))
     .then((j: Jawaban) => {
-      keadaan = gabung(j);
-      kabari();
+      terapkanBeranda(j);
       return keadaan;
     })
     .catch(() => keadaan)

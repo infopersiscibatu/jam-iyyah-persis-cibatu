@@ -72,45 +72,48 @@ const __ekspor = function pasangRuteBeranda(app, { tanya }) {
         return null;
       }
     };
-    const jenjang = await angka("select count(*)::int as n from jenjang where aktif and hitung_jenjang");
-    const santriSekolah = await angka(
+    const [jenjang, santriSekolah, santriKuliah] = await Promise.all([
+      angka("select count(*)::int as n from jenjang where aktif and hitung_jenjang"),
+      angka(
       `select count(*)::int as n
          from santri s
          join jenjang j on j.id = s.jenjang_id
         where s.status = 'aktif' and j.aktif and j.hitung_jenjang and j.slug <> 'pt'`,
-    );
-    const santriKuliah = await angka(
+      ),
+      angka(
       `select count(*)::int as n
          from santri s
          join jenjang j on j.id = s.jenjang_id
         where s.status = 'aktif' and j.aktif and j.slug = 'pt'`,
-    );
+      ),
+    ]);
     return { jenjang, siswa: santriSekolah, mahasiswa: santriKuliah };
   };
 
   const angkaTampil = (nilai) => (nilai === null || nilai === undefined ? null : Number(nilai).toLocaleString("id-ID"));
 
   const ambilBeranda = async () => {
-    const carousel = (
-      await tanya(
+    const [daftarCarousel, daftarMenu, daftarSosial, hasilStatistik, hitungan, navMentah] = await Promise.all([
+      tanya(
         `select id, urutan, tag, judul, teks, gambar_url, tombol_label, tombol_halaman, aktif
            from hero_slide order by urutan, id`,
-      )
-    ).rows;
-    const gridMenu = (
-      await tanya(
+      ),
+      tanya(
         `select id, urutan, label, keterangan, ikon, halaman, lencana, aktif
            from menu_cepat order by urutan, id`,
-      )
-    ).rows;
-    const sosial = (
-      await tanya("select id, urutan, nama, url, ikon, aktif from tautan_sosial order by urutan, id")
-    ).rows;
-    const statistik = (await tanya(
+      ),
+      tanya("select id, urutan, nama, url, ikon, aktif from tautan_sosial order by urutan, id"),
+      tanya(
       `select id, urutan, ikon, label, label_pendek, nilai, satuan, catatan, tone, aktif, sumber
          from statistik order by urutan, id`,
-    )).rows;
-    const hitungan = await hitungStatistik();
+      ),
+      hitungStatistik(),
+      bacaPengaturan("navigasi_bawah", NAV_BAWAAN),
+    ]);
+    const carousel = daftarCarousel.rows;
+    const gridMenu = daftarMenu.rows;
+    const sosial = daftarSosial.rows;
+    const statistik = hasilStatistik.rows;
     // Bila tabel statistik masih kosong, tampilkan kartu bawaan yang angkanya
     // dihitung langsung dari database (jenjang, siswa, mahasiswa).
     const statistikDasar = [
@@ -119,7 +122,6 @@ const __ekspor = function pasangRuteBeranda(app, { tanya }) {
       { id: "otomatis-mahasiswa", urutan: 3, ikon: "book-open", label: "Mahasiswa Aktif", label_pendek: "Mahasiswa", nilai: "0", satuan: null, catatan: null, tone: "green", aktif: true, sumber: "mahasiswa" },
     ];
     const daftarStatistik = statistik.length > 0 ? statistik : statistikDasar;
-    const navMentah = await bacaPengaturan("navigasi_bawah", NAV_BAWAAN);
     const navigasi = Array.isArray(navMentah) && navMentah.length > 0 ? navMentah : NAV_BAWAAN;
 
     return {

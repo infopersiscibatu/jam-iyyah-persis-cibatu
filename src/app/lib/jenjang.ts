@@ -429,21 +429,30 @@ export function unitJenjangDari(unit: UnitTampil[], jenjangSlug: string): UnitTa
 }
 
 let keadaan: JenjangGabungan = gabung(null);
+let janji: Promise<JenjangGabungan> | null = null;
 const pendengar = new Set<(v: JenjangGabungan) => void>();
 
 function kabari() {
   for (const dengar of pendengar) dengar(keadaan);
 }
 
+/** Publikasikan jawaban simpan tanpa menunggu pembacaan kedua. */
+export function terapkanJenjang(j: Jawaban) {
+  keadaan = gabung(j);
+  kabari();
+}
+
 export function segarkanJenjang(): Promise<JenjangGabungan> {
-  return fetch("/api/jenjang", { headers: { Accept: "application/json" } })
+  if (janji) return janji;
+  janji = fetch("/api/jenjang", { headers: { Accept: "application/json" } })
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Layanan menjawab ${r.status}`))))
     .then((j: Jawaban) => {
-      keadaan = gabung(j);
-      kabari();
+      terapkanJenjang(j);
       return keadaan;
     })
-    .catch(() => keadaan);
+    .catch(() => keadaan)
+    .finally(() => { janji = null; });
+  return janji;
 }
 
 export function useJenjang(): JenjangGabungan {
