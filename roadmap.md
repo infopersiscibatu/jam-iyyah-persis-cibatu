@@ -1,0 +1,14 @@
+# Roadmap migrasi
+- [ ] Perkecil ikon PWA dan hilangkan latar kotak pada ikon splash
+- [x] Tambahkan banner notifikasi masuk dengan animasi jatuh dari atas
+- [x] Sediakan tautan publik dengan pratinjau gambar konten seperti WordPress
+- [x] Salin seluruh kode tampilan, gambar, dan server asli
+- [x] Database di Lovable Cloud (skema + perubahan + data awal)
+- [x] Semua alamat /api/* dilayani kode server lama lewat Lovable Cloud
+- [x] Upload foto/dokumen ke penyimpanan Lovable Cloud (/berkas/...)
+- [x] Kirim notifikasi ke layar HP (Web Push asli lewat WebCrypto)
+- [ ] Ganti PIN admin bawaan 8081 (dilakukan pemilik lewat halaman admin)
+- [ ] Hapus footer semua halaman
+- [ ] Tambahkan berbagi untuk artikel, berita, pengumuman, agenda, galeri, dan donasi
+- [ ] Uji pilihan berbagi dan tautan langsung
+- [x] Perbaiki ikon PWA (tampilan tidak terpotong, berkas ringan) dan satukan layar pembuka ke layar Memuat Data
