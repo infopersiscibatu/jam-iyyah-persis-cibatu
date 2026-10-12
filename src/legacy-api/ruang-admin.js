@@ -45,23 +45,19 @@ function jadikanSlug(teks) {
 const __ekspor = function pasangRuteAdmin(app, { tanya }) {
   /** Seluruh data halaman profil (dipakai situs publik maupun borang admin). */
   const ambilProfil = async () => {
-    const baris = (
-      await tanya("select kunci, nilai from pengaturan where kunci = any($1)", [["identitas", "logo", "layanan_jamaah"]])
-    ).rows;
+    const [pengaturan, profil, susunan] = await Promise.all([
+      tanya("select kunci, nilai from pengaturan where kunci = any($1)", [["identitas", "logo", "layanan_jamaah"]]),
+      tanya("select gambar_url, gambar_alt, ringkasan, motto, periode, visi, misi from profil where id = 'utama'"),
+      tanya("select id, nama, jabatan, bidang, periode, urutan from pengurus where aktif order by urutan nulls last, nama"),
+    ]);
+    const baris = pengaturan.rows;
     const map = Object.fromEntries(baris.map((r) => [r.kunci, r.nilai || {}]));
     const idn = map.identitas || {};
     const lyn = map.layanan_jamaah || {};
     const logo = map.logo || {};
 
-    const prof =
-      (await tanya("select gambar_url, gambar_alt, ringkasan, motto, periode, visi, misi from profil where id = 'utama'"))
-        .rows[0] || {};
-
-    const pengurus = (
-      await tanya(
-        "select id, nama, jabatan, bidang, periode, urutan from pengurus where aktif order by urutan nulls last, nama",
-      )
-    ).rows;
+    const prof = profil.rows[0] || {};
+    const pengurus = susunan.rows;
 
     return {
       identitas: {
@@ -185,12 +181,9 @@ const __ekspor = function pasangRuteAdmin(app, { tanya }) {
   /* ------------------------- jenjang pendidikan ------------------------- */
 
   const ambilJenjang = async () => {
-    const halaman = (
-      await tanya("select nilai from pengaturan where kunci = 'halaman_jenjang'")
-    ).rows[0]?.nilai || {};
-
-    const baris = (
-      await tanya(
+    const [pengaturan, daftarJenjang, daftarUnit, daftarJurusan] = await Promise.all([
+      tanya("select nilai from pengaturan where kunci = 'halaman_jenjang'"),
+      tanya(
         `select j.id, j.slug, j.singkatan, j.nama, j.tagline, j.rentang, j.jumlah, j.satuan, j.lokasi,
                 j.tone, j.gambar_url, j.urutan, j.hitung_jenjang,
                 (select count(*)::int from unit_pendidikan u where u.jenjang_id = j.id) as jumlah_unit,
@@ -199,12 +192,9 @@ const __ekspor = function pasangRuteAdmin(app, { tanya }) {
            from jenjang j
           where j.aktif
           order by j.urutan nulls last, j.nama`,
-      )
-    ).rows;
-
-    /* Unit pendidikan (sekolah/madrasah/kampus) beserta program jurusannya. */
-    const unit = (
-      await tanya(
+      ),
+      /* Unit pendidikan (sekolah/madrasah/kampus) beserta program jurusannya. */
+      tanya(
         `select u.id, u.jenjang_id, j.slug as jenjang_slug, u.slug, u.nomor, u.nama, u.daerah, u.alamat, u.pimpinan,
                 u.rombel, u.guru, u.staf, u.akreditasi, u.status, u.kontak, u.email, u.npsn,
                 u.berdiri, u.jam, u.gambar_url, u.jurusan, u.ekstrakurikuler, u.fasilitas, u.aktif,
@@ -214,18 +204,19 @@ const __ekspor = function pasangRuteAdmin(app, { tanya }) {
            from unit_pendidikan u
            join jenjang j on j.id = u.jenjang_id
           order by j.urutan nulls last, u.nomor nulls last, u.nama`,
-      )
-    ).rows;
-
-    const jurusan = (
-      await tanya(
+      ),
+      tanya(
         `select p.id, p.jenjang_id, j.slug as jenjang_slug, p.slug, p.singkatan, p.nama, p.intro, p.fokus, p.ukt,
                 p.gambar_url, p.urutan, p.aktif
            from jurusan p
            join jenjang j on j.id = p.jenjang_id
           order by j.urutan nulls last, p.urutan nulls last, p.nama`,
-      )
-    ).rows;
+      ),
+    ]);
+    const halaman = pengaturan.rows[0]?.nilai || {};
+    const baris = daftarJenjang.rows;
+    const unit = daftarUnit.rows;
+    const jurusan = daftarJurusan.rows;
 
     return {
       halaman: {

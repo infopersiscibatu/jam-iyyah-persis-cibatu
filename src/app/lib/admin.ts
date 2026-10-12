@@ -1,6 +1,9 @@
 /** Pemanggil layanan panel admin. Semua kesalahan dilempar sebagai Error berisi pesan. */
 
 import { ambilToken, hapusToken } from "./sesi";
+import { terapkanJenjang } from "./jenjang";
+import { terapkanProfil } from "./profil";
+import { terapkanBeranda } from "./beranda";
 
 async function baca(jawab: Response) {
   const tipe = jawab.headers.get("content-type") ?? "";
@@ -24,7 +27,13 @@ async function minta<T = Record<string, unknown>>(jalur: string, opsi: RequestIn
     hapusToken();
     throw new Error("Sesi sudah berakhir. Silakan masuk kembali dengan PIN.");
   }
-  return (await baca(jawab)) as T;
+  const isi = await baca(jawab);
+  if (opsi.method && opsi.method !== "GET" && isi.ok) {
+    if (Array.isArray(isi.jenjang) && Array.isArray(isi.unit)) terapkanJenjang(isi);
+    if (isi.identitas && isi.profil) terapkanProfil(isi);
+    if (Array.isArray(isi.carousel) && Array.isArray(isi.gridMenu)) terapkanBeranda(isi);
+  }
+  return isi as T;
 }
 
 /** Angka ringkas halaman Dashboard panel admin. */

@@ -89,16 +89,22 @@ function kabari() {
   for (const dengar of pendengar) dengar(keadaan);
 }
 
+export function terapkanProfil(j: Jawaban) {
+  keadaan = gabung(j);
+  kabari();
+}
+
 /** Ambil ulang data profil dari layanan. */
 export function segarkanProfil(): Promise<ProfilGabungan> {
+  if (janji) return janji;
   janji = fetch("/api/profil", { headers: { Accept: "application/json" } })
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Layanan menjawab ${r.status}`))))
     .then((j: Jawaban) => {
-      keadaan = gabung(j);
-      kabari();
+      terapkanProfil(j);
       return keadaan;
     })
-    .catch(() => keadaan);
+    .catch(() => keadaan)
+    .finally(() => { janji = null; });
   return janji;
 }
 

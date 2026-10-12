@@ -250,6 +250,7 @@ function gabung(j: Jawaban | null): SpmbGabungan {
 }
 
 let keadaan: SpmbGabungan = gabung(null);
+let janji: Promise<SpmbGabungan> | null = null;
 const pendengar = new Set<(v: SpmbGabungan) => void>();
 
 function kabari() {
@@ -257,14 +258,17 @@ function kabari() {
 }
 
 export function segarkanSpmb(): Promise<SpmbGabungan> {
-  return fetch("/api/spmb", { headers: { Accept: "application/json" } })
+  if (janji) return janji;
+  janji = fetch("/api/spmb", { headers: { Accept: "application/json" } })
     .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`Layanan menjawab ${r.status}`))))
     .then((j: Jawaban) => {
       keadaan = gabung(j);
       kabari();
       return keadaan;
     })
-    .catch(() => keadaan);
+    .catch(() => keadaan)
+    .finally(() => { janji = null; });
+  return janji;
 }
 
 export function useSpmb(): SpmbGabungan {
