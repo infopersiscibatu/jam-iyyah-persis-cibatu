@@ -1,5 +1,5 @@
 # Roadmap migrasi
-- [ ] Percepat pemuatan data dan penyegaran perubahan di halaman publik
+- [x] Percepat pemuatan data dan penyegaran perubahan di halaman publik
 - [x] Perbaiki sebutan kepala sekolah pada daftar dan identitas sekolah/kampus
 - [ ] Perkecil ikon PWA dan hilangkan latar kotak pada ikon splash
 - [x] Tambahkan banner notifikasi masuk dengan animasi jatuh dari atas
