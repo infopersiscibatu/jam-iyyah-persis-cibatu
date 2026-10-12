@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AreaTeks, Kolom, Pesan, TombolIkon, TombolSimpan } from "../../components/admin/Form";
 import { Icon } from "../../components/Icons";
+import PilihGambar from "../../components/admin/PilihGambar";
 import { gambar } from "../../data/content";
 import { segarkanJenjang, useJenjang } from "../../lib/jenjang";
 import { beritahu, mintaKonfirmasi } from "../../lib/notifikasiAdmin";
@@ -206,6 +207,7 @@ type BarisJenjang = {
   tagline: string;
   gambar: string;
   jumlahUnit: number;
+  gambarBerubah?: boolean;
 };
 
 export function NamaJenjang() {
@@ -255,9 +257,9 @@ export function NamaJenjang() {
         continue;
       }
       if (b.id) {
-        await ubahJenjang(b.id, { nama, singkatan: short, tagline });
+        await ubahJenjang(b.id, { nama, singkatan: short, tagline, ...(b.gambarBerubah ? { gambar_url: b.gambar } : {}) });
         urut.push(b.id);
-        hasil.push({ ...b, nama, short, tagline });
+        hasil.push({ ...b, nama, short, tagline, gambarBerubah: false });
       } else {
         const jawab = (await tambahJenjang({ nama, singkatan: short, tagline })) as {
           jenjang?: { id: string }[];
@@ -265,6 +267,7 @@ export function NamaJenjang() {
         const baru = (jawab.jenjang ?? []).find((p) => !idDiketahui.has(p.id));
         if (baru) {
           idDiketahui.add(baru.id);
+          if (b.gambarBerubah && b.gambar) await ubahJenjang(baru.id, { gambar_url: b.gambar });
           urut.push(baru.id);
           hasil.push({ ...b, id: baru.id, slug: baru.id, nama, short, tagline, jumlahUnit: 0 });
         } else {
@@ -379,6 +382,17 @@ export function NamaJenjang() {
                   }}
                 />
               </label>
+              <PilihGambar
+                label="Gambar jenjang"
+                petunjuk="Tampil pada kartu jenjang di halaman Jenjang Pendidikan."
+                nilai={b.gambar}
+                folder="jenjang"
+                testid={`jenjang-gambar-${i}`}
+                onUbah={(g) => {
+                  setKotor(true);
+                  setBaris((s) => s.map((r, k) => (k === i ? { ...r, gambar: g.url, gambarBerubah: true } : r)));
+                }}
+              />
             </div>
           </div>
         ))}
@@ -400,7 +414,7 @@ export function NamaJenjang() {
       <p className="mt-4 text-justify text-[10.5px] leading-relaxed text-ink-400">
         Jenjang yang masih memiliki unit, jurusan, mata pelajaran, atau santri tidak bisa dihapus — pesannya akan muncul
         dan sebutkan jumlah datanya. Jenjang baru akan tampil di halaman sesuai urutannya setelah nama dan singkatannya
-        diisi lalu disimpan. Rincian lain tiap jenjang (jumlah siswa, gambar, pengantar, dan fasilitas) menyusul pada
+        diisi lalu disimpan. Rincian lain tiap jenjang (jumlah siswa, pengantar, dan fasilitas) menyusul pada
         menu berikutnya.
       </p>
       <div className="mt-3.5">
