@@ -36,6 +36,13 @@
       "when": 1791780047309,
       "tag": "0004_skema_persis_cibatu",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791798178306,
+      "tag": "0005_skema_persis_cibatu_bersih",
+      "breakpoints": true
     }
   ]
 }
