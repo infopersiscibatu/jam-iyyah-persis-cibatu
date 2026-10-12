@@ -170,12 +170,15 @@ const __ekspor = function pasangRuteAdmin(app, { tanya }) {
     }
     if (setel.length === 0) return res.status(400).json({ pesan: "Tidak ada perubahan yang dikirim." });
 
-    await kirim(res, () =>
-      tanya(
+    await kirim(res, async () => {
+      /* Pastikan baris 'utama' ada dulu agar pembaruan tidak mengenai 0 baris
+         (database bersih belum punya baris profil, sehingga simpan tampak gagal). */
+      await tanya(`insert into profil (id) values ('utama') on conflict (id) do nothing`);
+      return tanya(
         `update profil set ${setel.join(", ")}, diperbarui = now() where id = 'utama'`,
         nilai,
-      ),
-    );
+      );
+    });
   });
 
   /* ------------------------- jenjang pendidikan ------------------------- */
