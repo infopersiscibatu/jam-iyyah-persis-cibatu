@@ -7,6 +7,7 @@
  */
 
 import type { Istilah } from "./istilah";
+import { siapkanKiriman } from "./kompresGambar";
 
 const KUNCI = "persis-cibatu-wali-sesi-v1";
 
@@ -202,9 +203,10 @@ export const ambilTagihanWali = () => mintaWali<DataWali>("/api/wali/tagihan");
  * (sama seperti bukti transfer) dan alamatnya disimpan pada data siswa/mahasiswa.
  */
 export async function unggahFotoWali(kiriman: { nama: string; tipe: string; data: string }) {
+  const siap = await siapkanKiriman(kiriman);
   return mintaWali<{ ok: boolean; foto: string; santri: SantriWali }>("/api/wali/foto", {
     method: "POST",
-    body: JSON.stringify(kiriman),
+    body: JSON.stringify(siap),
   });
 }
 
@@ -258,13 +260,15 @@ export async function hapusFotoWali() {
   return mintaWali<{ ok: boolean; foto: string; santri: SantriWali }>("/api/wali/foto", { method: "DELETE" });
 }
 
-export const kirimSetoran = (isian: {
+export const kirimSetoran = async (isian: {
   tagihanIds: string[];
   metode: string;
   catatan: string;
   bukti?: { nama: string; tipe: string; data: string } | null;
-}) =>
-  mintaWali<{ ok: boolean; jumlah: number; nominal: number; pesan: string }>("/api/wali/bayar", {
+}) => {
+  const bukti = isian.bukti ? await siapkanKiriman(isian.bukti) : isian.bukti;
+  return mintaWali<{ ok: boolean; jumlah: number; nominal: number; pesan: string }>("/api/wali/bayar", {
     method: "POST",
-    body: JSON.stringify(isian),
+    body: JSON.stringify({ ...isian, bukti }),
   });
+};
