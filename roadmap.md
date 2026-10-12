@@ -1,4 +1,5 @@
 # Roadmap migrasi
+- [x] Siapkan supabase-mandiri.sql dengan skema lengkap dan tanpa data contoh
 - [x] Kompres semua unggahan gambar dengan sasaran 30–50 KB dan pertahankan ketajaman semaksimal mungkin
 - [x] Percepat pemuatan data dan penyegaran perubahan di halaman publik
 - [x] Perbaiki sebutan kepala sekolah pada daftar dan identitas sekolah/kampus
