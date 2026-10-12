@@ -3,6 +3,7 @@ import { AreaTeks, Kolom, Pesan, TombolIkon, TombolSimpan } from "../../componen
 import { Icon } from "../../components/Icons";
 import { beritahu, mintaKonfirmasi } from "../../lib/notifikasiAdmin";
 import { useProfil, segarkanProfil } from "../../lib/profil";
+import { gambar } from "../../data/content";
 import {
   hapusPengurus,
   simpanIdentitas,
@@ -314,6 +315,114 @@ export function LogoLembaga() {
       <p className="mt-4 text-justify text-[10.5px] leading-relaxed text-ink-400">
         Format yang diterima: PNG, JPG, WEBP, atau SVG. Ukuran paling nyaman di bawah 500 KB dengan bentuk persegi agar
         tidak terpotong di kepala situs.
+      </p>
+    </div>
+  );
+}
+
+/* --------------------------- Gambar halaman profil --------------------------- */
+
+export function GambarHalamanProfil() {
+  const data = useProfil();
+  const { sibuk, pesan, jalankan, setPesan } = pakaiSimpan();
+  const [alt, setAlt] = useState(data.profil.imageAlt);
+  const [terisi, setTerisi] = useState(false);
+  const berkasRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!terisi && data.dariDatabase) {
+      setAlt(data.profil.imageAlt);
+      setTerisi(true);
+    }
+  }, [terisi, data.dariDatabase, data.profil.imageAlt]);
+
+  const pilihBerkas = async (berkas: File | undefined) => {
+    if (!berkas) return;
+    if (berkas.size > 25 * 1024 * 1024) {
+      setPesan({ tipe: "galat", teks: "Berkas terlalu besar. Batas maksimal 25 MB." });
+      return;
+    }
+    await jalankan(async () => {
+      const hasil = await unggahBerkas(berkas, "profil");
+      await simpanProfil({ gambar_url: hasil.url, gambar_alt: alt });
+    }, "Gambar halaman profil tersimpan dan langsung dipakai.");
+  };
+
+  return (
+    <div data-testid="admin-profil-gambar">
+      {pesan ? <Pesan tipe={pesan.tipe} teks={pesan.teks} /> : null}
+
+      <div className="mt-4 rounded-2xl border border-black/[0.08] bg-white p-4">
+        <div className="overflow-hidden rounded-2xl border border-black/[0.08]">
+          <img src={data.profil.image || gambar.masjidJabar} alt="" className="h-[168px] w-full object-cover" />
+        </div>
+        <p className="mt-2.5 text-[10px] break-all text-ink-400">{data.profil.image || gambar.masjidJabar}</p>
+
+        <div className="mt-3.5 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            data-testid="pilih-gambar-profil"
+            disabled={sibuk}
+            onClick={() => berkasRef.current?.click()}
+            className="inline-flex items-center gap-2 rounded-full bg-persis-900 px-3.5 py-2 text-[11.5px] font-semibold text-white transition active:scale-[0.98] disabled:opacity-50"
+          >
+            <Icon name="image" className="h-[15px] w-[15px]" />
+            {sibuk ? "Mengunggah…" : "Ganti gambar"}
+          </button>
+          <button
+            type="button"
+            data-testid="gambar-profil-bawaan"
+            disabled={sibuk}
+            onClick={() =>
+              void jalankan(
+                () => simpanProfil({ gambar_url: gambar.masjidJabar, gambar_alt: alt }),
+                "Gambar bawaan dipakai kembali.",
+              )
+            }
+            className="rounded-full border border-black/[0.12] px-3.5 py-2 text-[11.5px] font-semibold text-persis-900 transition active:scale-[0.98] disabled:opacity-50"
+          >
+            Pakai gambar bawaan
+          </button>
+        </div>
+
+        <input
+          ref={berkasRef}
+          type="file"
+          accept="image/png,image/jpeg,image/webp"
+          className="hidden"
+          data-testid="berkas-gambar-profil"
+          onChange={(e) => {
+            void pilihBerkas(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+
+        <div className="mt-4">
+          <Kolom
+            testid="isian-gambar-profil-alt"
+            label="Keterangan gambar (alt)"
+            nilai={alt}
+            onUbah={setAlt}
+            petunjuk="Dipakai pembaca layar dan saat gambar gagal dimuat. Tekan simpan setelah diubah."
+          />
+        </div>
+        <div className="mt-3">
+          <TombolSimpan
+            testid="simpan-gambar-profil-alt"
+            sibuk={sibuk}
+            onClick={() =>
+              void jalankan(
+                () => simpanProfil({ gambar_url: data.profil.image, gambar_alt: alt }),
+                "Keterangan gambar tersimpan.",
+              )
+            }
+          />
+        </div>
+      </div>
+
+      <p className="mt-4 text-justify text-[10.5px] leading-relaxed text-ink-400">
+        Gambar ini tampil sebagai sampul di bagian atas halaman profil. Gambar yang diunggah otomatis dikompres agar
+        ringan tanpa mengorbankan kualitas.
       </p>
     </div>
   );
