@@ -4,6 +4,7 @@ import { ambilToken, hapusToken } from "./sesi";
 import { terapkanJenjang } from "./jenjang";
 import { terapkanProfil } from "./profil";
 import { terapkanBeranda } from "./beranda";
+import { siapkanUnggahan } from "./kompresGambar";
 
 async function baca(jawab: Response) {
   const tipe = jawab.headers.get("content-type") ?? "";
@@ -123,16 +124,10 @@ export const urutJenjang = (urut: string[]) => kirim("/api/admin/jenjang-urut", 
 
 /** Unggah berkas ke penyimpanan Mythex, hasilnya alamat publik gambar. */
 export async function unggahBerkas(berkas: File, folder = "umum"): Promise<{ id: string; url: string }> {
-  const data = await new Promise<string>((selesai, gagal) => {
-    const pembaca = new FileReader();
-    pembaca.onload = () => selesai(String(pembaca.result).split(",")[1] ?? "");
-    pembaca.onerror = () => gagal(new Error("Berkas tidak bisa dibaca."));
-    pembaca.readAsDataURL(berkas);
-  });
-  if (!data) throw new Error("Berkas kosong atau tidak bisa dibaca.");
+  const kiriman = await siapkanUnggahan(berkas);
   const hasil = await minta<{ media: { id: string; url: string } }>("/api/unggah", {
     method: "POST",
-    body: JSON.stringify({ nama: berkas.name, tipe: berkas.type, data, folder, alt: berkas.name }),
+    body: JSON.stringify({ ...kiriman, folder, alt: berkas.name }),
   });
   return { id: hasil.media.id, url: hasil.media.url };
 }
