@@ -1,3 +1,6 @@
+import { EditorKaya } from "../../components/admin/EditorKaya";
+import { keHtml, pecahHtml } from "../../lib/isiKaya";
+import { unggahBerkas } from "../../lib/admin";
 import { useEffect, useMemo, useState } from "react";
 import {
   AreaTeks,
@@ -71,7 +74,7 @@ export function DaftarAgenda() {
             waktu: a.time === "—" ? "" : a.time,
             tempat: a.place === "—" ? "" : a.place,
             tag: a.tag,
-            isiTeks: a.detail.join("\n\n"),
+            isiTeks: keHtml(a.detail),
             terbit: a.terbit,
           }
         : {
@@ -90,10 +93,7 @@ export function DaftarAgenda() {
 
   const simpan = async () => {
     if (!borang) return;
-    const isi = borang.isiTeks
-      .split(/\n\s*\n/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0);
+    const isi = pecahHtml(borang.isiTeks);
     const muatan = {
       judul: borang.judul,
       tanggal: borang.tanggal,
@@ -130,10 +130,7 @@ export function DaftarAgenda() {
   };
 
   if (borang) {
-    const bagian = borang.isiTeks
-      .split(/\n\s*\n/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0).length;
+    const bagian = pecahHtml(borang.isiTeks).length;
 
     return (
       <div data-testid="admin-agenda-borang">
@@ -200,13 +197,13 @@ export function DaftarAgenda() {
 
           <section className="space-y-3 rounded-2xl border border-black/[0.08] bg-white p-4">
             <h2 className="font-header text-[13px] font-bold text-ink-900">Keterangan lengkap</h2>
-            <AreaTeks
+            <EditorKaya
               testid="agenda-item-isi"
               label="Keterangan"
               nilai={borang.isiTeks}
               onUbah={(v) => ubah({ isiTeks: v })}
-              baris={10}
-              petunjuk={`Pisahkan antarparagraf dengan satu baris kosong. Saat ini terbaca ${bagian} paragraf.`}
+              petunjuk={`Gunakan tombol di atas untuk huruf tebal, poin, tautan, dan gambar. Saat ini terbaca ${bagian} paragraf.`}
+              unggah={(f) => unggahBerkas(f, "agenda").then((r) => r.url)}
             />
           </section>
 
