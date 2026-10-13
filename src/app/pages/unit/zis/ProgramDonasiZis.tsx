@@ -1,3 +1,6 @@
+import { EditorKaya } from "../../../components/admin/EditorKaya";
+import { keHtml, pecahHtml } from "../../../lib/isiKaya";
+import { unggahGambar } from "../../../lib/unggah";
 import { useCallback, useState } from "react";
 import PilihGambar from "../../../components/admin/PilihGambar";
 import {
@@ -281,14 +284,13 @@ export default function ProgramDonasiZis({ namaPetugas }: { namaPetugas?: string
               baris={4}
               petunjuk="Ringkasan singkat yang tampil pada kartu program di situs."
             />
-            <DaftarTeks
+            <EditorKaya
               testid="program-isi"
               label="Penjelasan lengkap"
-              nilai={borang.isi}
-              onUbah={(v) => setBorang({ ...borang, isi: v })}
-              placeholder="Satu paragraf tiap baris"
-              labelTambah="Tambah paragraf"
-              petunjuk="Satu baris menjadi satu paragraf pada halaman program di situs."
+              nilai={keHtml(borang.isi)}
+              onUbah={(v) => setBorang((b) => (b ? { ...b, isi: pecahHtml(v) } : b))}
+              unggah={(f) => unggahGambar(f, "donasi").then((r) => r.url)}
+              petunjuk="Penjelasan ini tampil pada halaman program di situs."
             />
             <Rincian
               nilai={borang.rincian}
