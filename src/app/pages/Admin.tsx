@@ -7,6 +7,7 @@ import Dashboard from "./admin/Dashboard";
 import {
   LayananJamaah,
   LogoLembaga,
+  GambarHalamanProfil,
   Misi,
   NamaLembaga,
   Pengurus,
@@ -67,6 +68,7 @@ const KELOMPOK = [
     item: [
       { id: "identitas-nama", label: "Nama Lembaga", ikon: "info" },
       { id: "identitas-logo", label: "Logo", ikon: "image" },
+      { id: "identitas-gambar", label: "Gambar Halaman", ikon: "image" },
       { id: "identitas-profil", label: "Profil Singkat", ikon: "book-open" },
       { id: "identitas-semboyan", label: "Semboyan", ikon: "sparkle" },
       { id: "identitas-visi", label: "Visi", ikon: "eye" },
@@ -231,6 +233,7 @@ const JUDUL: Record<IdMenu, string> = {
   dashboard: "Dashboard",
   "identitas-nama": "Nama Lembaga",
   "identitas-logo": "Logo",
+  "identitas-gambar": "Gambar Halaman",
   "identitas-profil": "Profil Singkat",
   "identitas-semboyan": "Semboyan",
   "identitas-visi": "Visi",
@@ -622,6 +625,7 @@ export default function HalamanAdmin({
         {menu === "dashboard" ? <Dashboard /> : null}
         {menu === "identitas-nama" ? <NamaLembaga /> : null}
         {menu === "identitas-logo" ? <LogoLembaga /> : null}
+        {menu === "identitas-gambar" ? <GambarHalamanProfil /> : null}
         {menu === "identitas-profil" ? <ProfilSingkat /> : null}
         {menu === "identitas-semboyan" ? <Semboyan /> : null}
         {menu === "identitas-visi" ? <Visi /> : null}
