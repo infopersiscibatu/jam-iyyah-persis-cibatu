@@ -1,3 +1,5 @@
+import { EditorKaya } from "../../components/admin/EditorKaya";
+import { keHtml, pecahHtml } from "../../lib/isiKaya";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AreaTeks,
@@ -408,7 +410,7 @@ export function DaftarBerita() {
             penulis: b.author,
             gambar: b.image,
             ringkasan: b.excerpt,
-            isiTeks: b.body.join("\n\n"),
+            isiTeks: keHtml(b.body),
             sorotan: b.sorotan,
             terbit: b.terbit,
           }
@@ -443,10 +445,7 @@ export function DaftarBerita() {
 
   const simpan = async () => {
     if (!borang) return;
-    const isi = borang.isiTeks
-      .split(/\n\s*\n/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0);
+    const isi = pecahHtml(borang.isiTeks);
     const muatan = {
       judul: borang.judul,
       kategori: borang.kategori,
@@ -485,10 +484,7 @@ export function DaftarBerita() {
   };
 
   if (borang) {
-    const bagian = borang.isiTeks
-      .split(/\n\s*\n/)
-      .map((p) => p.trim())
-      .filter((p) => p.length > 0).length;
+    const bagian = pecahHtml(borang.isiTeks).length;
 
     return (
       <div data-testid="admin-berita-borang">
@@ -599,13 +595,13 @@ export function DaftarBerita() {
               baris={3}
               petunjuk="Tampil pada kartu berita dan bagian pembuka halaman."
             />
-            <AreaTeks
+            <EditorKaya
               testid="berita-item-isi"
               label="Isi lengkap"
               nilai={borang.isiTeks}
               onUbah={(v) => ubah({ isiTeks: v })}
-              baris={12}
-              petunjuk={`Pisahkan antarparagraf dengan satu baris kosong. Saat ini terbaca ${bagian} paragraf.`}
+              petunjuk={`Gunakan tombol di atas untuk huruf tebal, poin, tautan, dan gambar. Saat ini terbaca ${bagian} paragraf.`}
+              unggah={(f) => unggahBerkas(f, "berita").then((r) => r.url)}
             />
           </section>
 
