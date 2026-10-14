@@ -17,22 +17,15 @@ self.addEventListener("push", (peristiwa) => {
     badge: "/favicon.png",
     tag: data.tag || "persis-cibatu",
     lang: "id",
-    /* Tampilan banner sistem ditentukan peramban dan pengaturan perangkat. */
-    vibrate: [200, 100, 200],
+    /* Prioritas tinggi: getar kuat, tahan di layar, dan bunyi ulang agar seperti aplikasi Android. */
+    vibrate: [300, 100, 300, 100, 300],
     requireInteraction: true,
+    renotify: true,
+    silent: false,
     data: { url: data.url || "/" },
   };
 
-  peristiwa.waitUntil(Promise.all([
-    self.registration.showNotification(judul, opsi),
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((daftar) => {
-      for (const klien of daftar) {
-        if (klien.visibilityState === "visible" && new URL(klien.url).origin === self.location.origin) {
-          klien.postMessage({ type: "PERSIS_PUSH", payload: { title: judul, body: opsi.body, url: opsi.data.url } });
-        }
-      }
-    }),
-  ]));
+  peristiwa.waitUntil(self.registration.showNotification(judul, opsi));
 });
 
 self.addEventListener("notificationclick", (peristiwa) => {
