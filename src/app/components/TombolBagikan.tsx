@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Copy, Share2, X, Check } from "lucide-react";
 import { susunBagikan, type KontenBagikan } from "../lib/bagikan";
+import { buatKartuBagikan } from "../lib/kartuBagikan";
 
 function LogoWhatsApp() {
   return (
@@ -36,17 +37,23 @@ export default function TombolBagikan({ konten }: { konten: KontenBagikan }) {
 
   useEffect(() => {
     setFile(null);
-    if (!data.gambar) return;
     const abort = new AbortController();
-    void fetch(data.gambar, { signal: abort.signal }).then(async (res) => {
-      if (!res.ok) return;
-      const blob = await res.blob();
-      if (!blob.type.startsWith("image/") || blob.size > 10 * 1024 * 1024 || abort.signal.aborted) return;
-      const ext = blob.type === "image/png" ? "png" : blob.type === "image/webp" ? "webp" : "jpg";
-      setFile(new File([blob], `persis-cibatu.${ext}`, { type: blob.type }));
-    }).catch(() => {});
+    const ambil = async (): Promise<Blob | null> => {
+      if (!data.gambar) return null;
+      try {
+        const res = await fetch(data.gambar, { signal: abort.signal });
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        return blob.type.startsWith("image/") && blob.size <= 10 * 1024 * 1024 ? blob : null;
+      } catch { return null; }
+    };
+    void ambil().then(async (foto) => {
+      if (abort.signal.aborted) return;
+      const kartu = await buatKartuBagikan({ foto, judul: data.judul, ringkasan: data.ringkasan, situs: window.location.host });
+      if (!abort.signal.aborted && kartu) setFile(kartu);
+    });
     return () => abort.abort();
-  }, [data.gambar]);
+  }, [data.gambar, data.judul, data.ringkasan]);
 
   useEffect(() => {
     if (!status) return;
