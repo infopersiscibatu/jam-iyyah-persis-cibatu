@@ -1,3 +1,4 @@
+import { BlokIsi } from "./IsiKaya";
 import { useEffect, type ReactNode } from "react";
 import { Icon } from "./Icons";
 import TombolBagikan from "./TombolBagikan";
@@ -72,14 +73,9 @@ export default function Popup({
           <div className="border-t border-black/[0.08] pt-3.5">
             <div className="space-y-3">
               {detail.map((par, i) => (
-                <p
-                  key={par}
-                  className={`text-justify leading-relaxed ${
+                <BlokIsi key={i} teks={par} className={`text-justify leading-relaxed ${
                     i === 0 ? "text-[13px] font-medium text-ink-900" : "text-[12.5px] text-ink-600"
-                  }`}
-                >
-                  {par}
-                </p>
+                  }`} />
               ))}
             </div>
           </div>

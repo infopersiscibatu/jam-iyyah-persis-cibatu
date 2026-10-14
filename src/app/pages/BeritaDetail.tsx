@@ -1,3 +1,4 @@
+import { BlokIsi } from "../components/IsiKaya";
 import { Fragment, useEffect } from "react";
 import TombolBagikan from "../components/TombolBagikan";
 import KartuBerita, { KartuBacaJuga, type ItemKartu } from "../components/KartuBerita";
@@ -135,7 +136,7 @@ export function HalamanBeritaDetail({
               const kartu = posisi.indexOf(i);
               return (
                 <Fragment key={i}>
-                  <p className="text-justify text-[12.5px] leading-relaxed text-ink-700">{paragraf}</p>
+                  <BlokIsi teks={paragraf} className="text-justify text-[12.5px] leading-relaxed text-ink-700" />
                   {kartu >= 0 ? (
                     <KartuBacaJuga item={keKartu(terkait[kartu])} onOpen={() => onBuka(terkait[kartu].slug)} />
                   ) : null}
