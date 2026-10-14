@@ -1,3 +1,4 @@
+import { BlokIsi } from "../components/IsiKaya";
 import { useState } from "react";
 import TombolBagikan from "../components/TombolBagikan";
 import FormDonasi, { type IsianDonasi } from "../components/FormDonasi";
@@ -241,14 +242,9 @@ export function HalamanDonasiDetail({
                 </p>
                 <div className="mt-3.5 space-y-3.5 border-t border-black/[0.06] pt-3.5">
                   {program.body.map((p, i) => (
-                    <p
-                      key={i}
-                      className={`text-justify text-[12px] leading-relaxed ${
+                    <BlokIsi key={i} teks={p} className={`text-justify text-[12px] leading-relaxed ${
                         i === 0 ? "font-medium text-ink-900" : "text-ink-700"
-                      }`}
-                    >
-                      {p}
-                    </p>
+                      }`} />
                   ))}
                 </div>
                 <p className="mt-4 flex items-center justify-between gap-3 border-t border-black/[0.06] pt-3.5">

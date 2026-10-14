@@ -25,7 +25,7 @@ export function dariJawaban(jalur: string, jawaban: Record<string, unknown>): Pr
   if (!item) return null;
   return {
     judul: teks(item.judul),
-    ringkasan: teks(item.ringkasan) || teks(item.kategori) || [item.tanggal, item.waktu, item.tempat, Array.isArray(item.isi) ? item.isi[0] : ""].map(teks).filter(Boolean).join(" · "),
+    ringkasan: teks(item.ringkasan) || teks(item.kategori) || [item.tanggal, item.waktu, item.tempat, Array.isArray(item.isi) ? String(item.isi[0] ?? "").replace(/<[^>]*>/g, " ").replace(/&nbsp;/g, " ") : ""].map(teks).filter(Boolean).join(" · "),
     gambar: teks(item.gambarUrl ?? item.gambar),
     hash: tujuan.hash,
   };

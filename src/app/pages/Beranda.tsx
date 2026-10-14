@@ -1,3 +1,4 @@
+import { teksPolos } from "../lib/isiKaya";
 import { useEffect, useState } from "react";
 import GridMenu from "../components/GridMenu";
 import { BagianTrending } from "../components/KartuBerita";
@@ -259,7 +260,7 @@ function BagianAgenda({ sasaran }: { sasaran?: string | null }) {
         open={pilih !== null}
         onClose={() => setPilih(null)}
         testId="popup-agenda"
-        bagikan={pilih ? { judul: pilih.title, ringkasan: [pilih.date, pilih.time, pilih.place, pilih.detail[0]].filter(Boolean).join(" · "), jalur: `/#/beranda/agenda/${pilih.id}` } : undefined}
+        bagikan={pilih ? { judul: pilih.title, ringkasan: [pilih.date, pilih.time, pilih.place, pilih.detail[0] ? teksPolos(pilih.detail[0]) : ""].filter(Boolean).join(" · "), jalur: `/#/beranda/agenda/${pilih.id}` } : undefined}
         title={pilih?.title ?? ""}
         icon={<Icon name="calendar" className={ikon} />}
         keterangan={
