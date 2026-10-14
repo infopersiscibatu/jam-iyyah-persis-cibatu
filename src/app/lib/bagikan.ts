@@ -25,6 +25,8 @@ export function susunBagikan(konten: KontenBagikan, asal: string) {
   const judul = bersih(konten.judul);
   const penulis = bersih(konten.penulis);
   const ringkasan = bersih(konten.ringkasan);
-  const teks = [gambar ? "" : "", judul, penulis ? `Penulis: ${penulis}` : "", ringkasan, url ? `Baca selengkapnya: ${url}` : ""].filter(Boolean).join("\n\n");
+  let situs = "";
+  try { situs = new URL(asal).host; } catch { /* abaikan */ }
+  const teks = [situs, `*${judul}*`, penulis ? `✍️ ${penulis}` : "", ringkasan, url ? `Baca selengkapnya: ${url}` : ""].filter(Boolean).join("\n\n");
   return { url, gambar, judul, penulis, ringkasan, teks };
 }
