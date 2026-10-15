@@ -42,13 +42,8 @@ export default function DialogIzinNotifikasi() {
   useEffect(() => {
     if (sudahTampilSesiIni()) return;
     if (!didukung()) {
-      /* Peramban tanpa dukungan notifikasi — termasuk aplikasi Android berbasis
-         WebView — tidak perlu diberi dialog: cukup dijelaskan di panel lonceng,
-         supaya tidak ada peringatan yang muncul berulang tiap aplikasi dibuka. */
-      tandaiSesi();
-      return;
-    }
-    if (window.Notification.permission === "granted") {
+      setKeadaan("tidak-didukung");
+    } else if (window.Notification.permission === "granted") {
       return;
     } else if (window.Notification.permission === "denied") {
       setKeadaan("ditolak");
