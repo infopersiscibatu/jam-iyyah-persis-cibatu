@@ -6,24 +6,10 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
   "orientation": "portrait",
   "background_color": "#0e4b2b",
   "theme_color": "#0e4b2b",
   "lang": "id",
-  "dir": "ltr",
-  "categories": [
-    "education",
-    "news",
-    "social"
-  ],
-  "prefer_related_applications": false,
-  "launch_handler": {
-    "client_mode": "focus-existing"
-  },
   "icons": [
     {
       "src": "/logo-persis.png",
@@ -36,60 +22,6 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
-    },
-  ],
-  "shortcuts": [
-    {
-      "name": "Berita & Kabar",
-      "short_name": "Berita",
-      "description": "Berita, pengumuman, dan agenda terbaru PC PERSIS Cibatu.",
-      "url": "/#/berita",
-      "icons": [
-        {
-          "src": "/logo-persis.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Pendaftaran SPMB",
-      "short_name": "SPMB",
-      "description": "Pendaftaran peserta didik baru sekolah PERSIS Cibatu.",
-      "url": "/#/spmb",
-      "icons": [
-        {
-          "src": "/logo-persis.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "Portal Wali",
-      "short_name": "Wali",
-      "description": "Tagihan, nilai, dan tahfidz ananda bagi wali peserta didik.",
-      "url": "/#/wali",
-      "icons": [
-        {
-          "src": "/logo-persis.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
-    },
-    {
-      "name": "ZIS & Donasi",
-      "short_name": "ZIS",
-      "description": "Zakat, infak, sedekah, dan program kemanfaatan jamaah.",
-      "url": "/#/info",
-      "icons": [
-        {
-          "src": "/logo-persis.png",
-          "sizes": "192x192",
-          "type": "image/png"
-        }
-      ]
     }
   ]
 }
