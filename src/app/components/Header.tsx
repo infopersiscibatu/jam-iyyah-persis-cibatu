@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { type Notifikasi } from "../data/content";
 import { useProfil } from "../lib/profil";
+import { didukungPush, pesanTanpaPush } from "../lib/push";
 import { labelNotifikasi } from "../lib/format";
 import { Icon } from "./Icons";
 
@@ -30,6 +31,12 @@ export default function Header({
 }) {
   const { identitas } = useProfil();
   const [terbuka, setTerbuka] = useState(false);
+  /* Diperiksa setelah halaman tampil supaya hasil server dan peramban sama. */
+  const [tanpaPush, setTanpaPush] = useState(false);
+
+  useEffect(() => {
+    setTanpaPush(!didukungPush());
+  }, []);
 
   useEffect(() => {
     if (!terbuka) return;
@@ -108,6 +115,16 @@ export default function Header({
                   ) : null}
                 </p>
                 <div className="flex shrink-0 items-center gap-2">
+                  {tanpaPush ? (
+                    <button
+                      type="button"
+                      data-testid="notif-perbarui"
+                      onClick={() => window.location.reload()}
+                      className="rounded-full border border-black/[0.1] px-2.5 py-1 text-[10px] font-semibold text-persis-900 transition active:scale-95"
+                    >
+                      Perbarui kabar
+                    </button>
+                  ) : null}
                   {jumlahBelumDibaca > 0 ? (
                     <button
                       type="button"
@@ -187,6 +204,15 @@ export default function Header({
                   </button>
                 </div>
               )}
+
+              {tanpaPush ? (
+                <p
+                  data-testid="notif-tanpa-push"
+                  className="mt-3 rounded-xl border border-black/[0.06] bg-cream-50 px-3 py-2.5 text-justify text-[10px] leading-relaxed text-ink-600"
+                >
+                  {pesanTanpaPush()}
+                </p>
+              ) : null}
             </div>
           </div>
         </>
