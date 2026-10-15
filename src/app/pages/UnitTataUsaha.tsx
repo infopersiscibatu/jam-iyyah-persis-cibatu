@@ -8,7 +8,6 @@ import KepalaUnit, { type MenuUnit } from "./unit/KepalaUnit";
 import StatistikTataUsaha from "./unit/StatistikTataUsaha";
 import TabelTagihan from "./unit/TabelTagihan";
 import KategoriTagihan from "./unit/KategoriTagihan";
-import PembayaranTagihan from "./unit/PembayaranTagihan";
 import MetodePembayaran from "./unit/MetodePembayaran";
 import TunggakanLunas from "./unit/TunggakanLunas";
 
