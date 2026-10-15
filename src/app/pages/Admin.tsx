@@ -28,6 +28,7 @@ import { DaftarPengumuman, KategoriPengumuman } from "./admin/Pengumuman";
 import { DaftarAgenda, KategoriAgenda } from "./admin/Agenda";
 import { Carousel, FooterBeranda, SusunanGridMenu, SusunanNavigasi } from "./admin/Beranda";
 import { AdminUnit, AdminZis } from "./admin/Unit";
+import { PerangkatNotifikasi } from "./admin/PerangkatNotifikasi";
 import MasukAdmin from "./admin/Masuk";
 import {
   AlamatKontak,
@@ -207,6 +208,7 @@ const KELOMPOK = [
 const MENU_TUNGGAL = [
   { id: "unit", label: "Admin Unit", ikon: "school" },
   { id: "unit-zis", label: "Admin ZIS", ikon: "heart" },
+  { id: "perangkat", label: "Perangkat Notifikasi", ikon: "bell" },
 ] as const;
 
 /**
@@ -220,7 +222,7 @@ const SEKSI = [
     label: "Konten Website",
     isi: ["berita", "artikel", "kajian", "agenda", "pengumuman", "galeri", "kontak", "spmb"],
   },
-  { id: "situs", label: "Situs", isi: ["beranda"] },
+  { id: "situs", label: "Situs", isi: ["beranda", "perangkat"] },
   { id: "unit", label: "Admin Unit", isi: ["unit", "unit-zis"] },
 ] as const;
 
@@ -284,6 +286,7 @@ const JUDUL: Record<IdMenu, string> = {
   "beranda-footer": "Footer",
   unit: "Admin Unit",
   "unit-zis": "Admin ZIS",
+  perangkat: "Perangkat Notifikasi",
 };
 
 export default function HalamanAdmin({
@@ -676,6 +679,7 @@ export default function HalamanAdmin({
         {menu === "beranda-footer" ? <FooterBeranda /> : null}
         {menu === "unit" ? <AdminUnit /> : null}
         {menu === "unit-zis" ? <AdminZis /> : null}
+        {menu === "perangkat" ? <PerangkatNotifikasi /> : null}
       </div>
 
       {pinBuka ? (
