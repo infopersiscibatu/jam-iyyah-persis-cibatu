@@ -42,7 +42,19 @@ export function HalamanBeritaDetail({
     if (slug) void hitungDibaca(slug);
   }, [slug]);
 
-  if (!berita) {
+    if (!berita) {
+    if (!data.dariDatabase) {
+      return (
+        <main data-testid="berita-detail-loading" className="mx-auto w-full max-w-[620px] px-5 pt-8 pb-8">
+          <div className="flex flex-col items-center justify-center rounded-2xl border border-black/[0.08] bg-white p-10 text-center shadow-xs">
+            <div className="h-9 w-9 animate-spin rounded-full border-3 border-persis-100 border-t-persis-900" />
+            <p className="mt-4 font-header text-[14px] font-bold text-ink-900">Memuat berita...</p>
+            <p className="mt-1 text-[12px] text-ink-500">Mengambil data terbaru dari server</p>
+          </div>
+        </main>
+      );
+    }
+
     return (
       <main data-testid="berita-detail" className="mx-auto w-full max-w-[620px] px-5 pt-8 pb-8">
         <div className="rounded-2xl border border-black/[0.08] bg-white p-5 text-center">
