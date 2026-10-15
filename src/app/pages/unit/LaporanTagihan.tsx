@@ -3,6 +3,7 @@ import { Icon } from "../../components/Icons";
 import { KepalaKartu } from "../../components/admin/KepalaKartu";
 import { angkaRingkas, rupiah, rupiahSingkat } from "../../lib/format";
 import { useIstilah } from "../../lib/istilah";
+import { useSesiUnit } from "../../lib/sesiUnit";
 import {
   daftarLaporanTU,
   laporanKategoriTU,
@@ -24,6 +25,9 @@ import {
  * belum ditagihkan. Nominal tiap sel terlihat saat kursor diarahkan ke selnya (atau
  * ditekan lama di HP), sedangkan angkanya tampil pada kolom Total lunas dan Sisa
  * tunggakan. Barisnya diurutkan menurut nama A–Z.
+ *
+ * Isi tabel yang sedang tampil bisa diunduh sebagai PDF atau Excel; tampilan kedua
+ * berkas itu mengikuti tabel di layar.
  */
 
 /** Tanda sel: ✓ sudah dibayar, X belum dibayar, – belum ditagihkan. */
@@ -66,6 +70,8 @@ const TEBAL_NAMA = "shadow-[6px_0_6px_-6px_rgba(6,36,25,0.22)]";
 
 export default function LaporanTagihan() {
   const istilah = useIstilah();
+  /* Nama unit dipakai di kepala berkas PDF dan Excel. */
+  const { sesi } = useSesiUnit();
 
   /* Daftar laporan yang bisa dipilih. */
   const [pilihan, setPilihan] = useState<PilihanLaporan[]>([]);
@@ -81,6 +87,8 @@ export default function LaporanTagihan() {
   const [saring, setSaring] = useState<"aktif" | "semua">("aktif");
   const [cari, setCari] = useState("");
   const [kataKunci, setKataKunci] = useState("");
+  const [sibuk, setSibuk] = useState<"excel" | "pdf" | null>(null);
+  const [galatEkspor, setGalatEkspor] = useState<string | null>(null);
 
   const muatPilihan = useCallback(async () => {
     setMemuatPilihan(true);
@@ -139,6 +147,30 @@ export default function LaporanTagihan() {
     setDipilih(null);
     setLaporan(null);
     setGalat(null);
+    setGalatEkspor(null);
+  };
+
+  /* ------------------------- unduh isi tabel yang tampil ------------------------- */
+
+  const ekspor = async (jenis: "excel" | "pdf") => {
+    if (!laporan || laporan.baris.length === 0 || sibuk) return;
+    setSibuk(jenis);
+    setGalatEkspor(null);
+    try {
+      /* Pustaka ekspornya baru diambil saat tombolnya benar-benar ditekan. */
+      const { unduhLaporanExcel, unduhLaporanPdf } = await import("../../lib/eksporLaporan");
+      const opsi = {
+        judul: dipilih?.nama ?? laporan.kategori.nama,
+        unit: sesi?.unit?.nama ?? "PC PERSIS Cibatu",
+        keterangan: kataKunci ? `disaring “${kataKunci}”` : undefined,
+      };
+      if (jenis === "excel") await unduhLaporanExcel(laporan, opsi);
+      else await unduhLaporanPdf(laporan, opsi);
+    } catch (e) {
+      setGalatEkspor(e instanceof Error ? e.message : "Berkasnya belum bisa dibuat. Coba lagi sebentar.");
+    } finally {
+      setSibuk(null);
+    }
   };
 
   /* ------------------------- memilih laporan lebih dahulu ------------------------- */
@@ -236,15 +268,40 @@ export default function LaporanTagihan() {
   return (
     <section data-testid="tu-laporan" className="mt-4">
       <div className="rounded-2xl border border-black/[0.08] bg-white p-3.5">
-        <button
-          type="button"
-          data-testid="tu-laporan-kembali"
-          onClick={tutup}
-          className="inline-flex items-center gap-1 rounded-full border border-black/[0.1] px-2.5 py-1.5 text-[10px] font-semibold text-persis-900"
-        >
-          <Icon name="chevron-right" className="h-[12px] w-[12px] rotate-180" />
-          Ganti laporan
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <button
+            type="button"
+            data-testid="tu-laporan-kembali"
+            onClick={tutup}
+            className="inline-flex items-center gap-1 rounded-full border border-black/[0.1] px-2.5 py-1.5 text-[10px] font-semibold text-persis-900"
+          >
+            <Icon name="chevron-right" className="h-[12px] w-[12px] rotate-180" />
+            Ganti laporan
+          </button>
+
+          <span className="ml-auto flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              data-testid="tu-laporan-unduh-pdf"
+              onClick={() => void ekspor("pdf")}
+              disabled={!laporan || laporan.baris.length === 0 || sibuk !== null}
+              className="rounded-full bg-persis-900 px-3 py-1.5 text-[10px] font-bold text-white transition disabled:opacity-45"
+            >
+              {sibuk === "pdf" ? "Menyiapkan PDF…" : "Unduh PDF"}
+            </button>
+            <button
+              type="button"
+              data-testid="tu-laporan-unduh-excel"
+              onClick={() => void ekspor("excel")}
+              disabled={!laporan || laporan.baris.length === 0 || sibuk !== null}
+              className="rounded-full border border-persis-900/25 px-3 py-1.5 text-[10px] font-bold text-persis-900 transition disabled:opacity-45"
+            >
+              {sibuk === "excel" ? "Menyiapkan Excel…" : "Unduh Excel"}
+            </button>
+          </span>
+        </div>
+
+        {galatEkspor ? <p className="mt-1.5 text-[10px] text-rose-700">{galatEkspor}</p> : null}
 
         <h2 className="mt-2.5 font-header text-[14px] leading-tight font-extrabold text-ink-900">{dipilih.nama}</h2>
         <p className="mt-1 text-[10px] text-ink-400">
