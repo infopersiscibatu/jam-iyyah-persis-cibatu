@@ -477,3 +477,118 @@ export const daftarTunggakanTU = (cari = "") => {
   const akhir = q.toString();
   return mintaUnit<JawabanTunggakanTU>(`/api/unit/tata-usaha/tunggakan${akhir ? `?${akhir}` : ""}`);
 };
+
+/* ---------------------------------- laporan ---------------------------------- */
+
+/** Laporan yang bisa dipilih petugas: satu baris satu kategori tagihan sekolah ini. */
+export type PilihanLaporan = {
+  id: string;
+  nama: string;
+  keterangan: string;
+  tipe: TipeKategori;
+  jatuhTempoHari: number | null;
+  /** Besaran nominal standar kategori ini. */
+  nominal: number;
+  /** Berapa tagihan yang sudah dibuat dengan kategori ini. */
+  jumlah: number;
+  /** Total nominal tagihan kategori ini. */
+  nilai: number;
+  /** Nominal tagihan kategori ini yang belum lunas. */
+  belum: number;
+  /** Berapa peserta yang sudah punya tagihan kategori ini. */
+  murid: number;
+  aktif: boolean;
+};
+
+/** Keadaan satu sel tabel laporan: satu bulan (atau satu tahun) milik satu peserta. */
+export type StatusSelLaporan = "lunas" | "menunggu" | "belum" | "kosong";
+
+export type SelLaporan = {
+  status: StatusSelLaporan;
+  nominal: number;
+  /** Tagihan yang mewakili sel ini; kosong bila bulan itu belum ditagihkan. */
+  tagihanId: string;
+  jatuhTempo: string | null;
+};
+
+/** Kolom tabel laporan: Jan–Des untuk kategori bulanan, atau tahun untuk sekali bayar. */
+export type KolomLaporan = { kunci: string; label: string; keterangan: string };
+
+/** Jumlah satu kolom: berapa yang sudah lunas dan berapa yang ditagihkan pada bulan itu. */
+export type JumlahKolomLaporan = { kunci: string; lunas: number; nominal: number; terisi: number };
+
+export type BarisLaporan = {
+  id: string;
+  nama: string;
+  kelas: string;
+  programNama: string;
+  status: string;
+  /** Satu nilai untuk tiap kolom, diambil dengan kunci kolomnya. */
+  sel: Record<string, SelLaporan>;
+  /** Total nominal yang ditagihkan pada kolom yang ditampilkan. */
+  ditagih: number;
+  /** Total nominal yang sudah lunas pada kolom yang ditampilkan. */
+  lunas: number;
+  /** Sisa tunggakan: belum bayar ditambah yang menunggu verifikasi. */
+  tunggakan: number;
+  jumlahLunas: number;
+  jumlahTunggakan: number;
+};
+
+export type JawabanPilihanLaporan = {
+  ok: boolean;
+  sebutan: string;
+  tahun: number;
+  tahunPilihan: number[];
+  laporan: PilihanLaporan[];
+};
+
+export type JawabanLaporan = {
+  ok: boolean;
+  sebutan: string;
+  kategori: {
+    id: string;
+    nama: string;
+    keterangan: string;
+    tipe: TipeKategori;
+    nominal: number;
+    jatuhTempoHari: number | null;
+    jumlahTagihan: number;
+  };
+  tahun: number;
+  tahunPilihan: number[];
+  bulanan: boolean;
+  kolom: KolomLaporan[];
+  kolomJumlah: JumlahKolomLaporan[];
+  baris: BarisLaporan[];
+  cari: string;
+  saring: string;
+  penuh: boolean;
+  ringkasan: {
+    peserta: number;
+    ditagih: number;
+    lunas: number;
+    tunggakan: number;
+    /** Peserta yang seluruh tagihannya pada kolom yang tampil sudah lunas. */
+    sudahLunas: number;
+    /** Peserta yang masih punya tagihan belum lunas. */
+    menunggak: number;
+  };
+};
+
+/** Daftar laporan yang bisa dipilih petugas tata usaha. */
+export const daftarLaporanTU = () => mintaUnit<JawabanPilihanLaporan>("/api/unit/tata-usaha/laporan");
+
+/** Tabel satu laporan: kolom bulan, total lunas, dan sisa tunggakan tiap peserta. */
+export const laporanKategoriTU = (
+  id: string,
+  opsi: { tahun?: number; cari?: string; saring?: "aktif" | "semua" } = {},) => {
+  const q = new URLSearchParams();
+  if (opsi.tahun) q.set("tahun", String(opsi.tahun));
+  if (opsi.saring) q.set("saring", opsi.saring);
+  if (opsi.cari?.trim()) q.set("cari", opsi.cari.trim());
+  const akhir = q.toString();
+  return mintaUnit<JawabanLaporan>(
+    `/api/unit/tata-usaha/laporan/${encodeURIComponent(id)}${akhir ? `?${akhir}` : ""}`,
+  );
+};
