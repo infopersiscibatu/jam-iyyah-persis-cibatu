@@ -20,6 +20,12 @@ export type OpsiEksporLaporan = {
   unit?: string;
   /** Keterangan tambahan bila perlu. */
   keterangan?: string;
+  /** Alamat gambar logo untuk kop berkas PDF, mis. "/logo-persis.png". */
+  logo?: string;
+  /** Tulisan di kop, di sebelah kiri logo. */
+  badan?: string;
+  /** Baris kecil di bawah nama badan, mis. "Cibatu · Garut · Jawa Barat". */
+  wilayah?: string;
 };
 
 /* Warna disamakan dengan token tema panel di src/app/index.css. */
@@ -320,97 +326,207 @@ export async function unduhLaporanExcel(laporan: JawabanLaporan, opsi: OpsiEkspo
 /* =================================== PDF =================================== */
 
 type Kotak = { x: number; y: number; width: number; height: number };
+type Logo = { dataUrl: string; format: "PNG" | "JPEG"; rasio: number };
 
-/** Tanda ✓ / X / – digambar sebagai garis vektor, jadi tampil sama di semua pembaca PDF. */
+/** Logo dibaca sekali saja, lalu dipakai lagi bila tombolnya ditekan ulang. */
+let logoTersimpan: Logo | null | undefined;
+
+/**
+ * Mengambil logo untuk kop berkas. Bila gagal (berkasnya hilang, jaringan putus, atau
+ * pemasok gambar melarang pembacaan lintas situs) hasilnya null — kopnya tetap dibuat
+ * memakai tulisan saja, jadi laporan tidak pernah gagal hanya karena logo.
+ */
+async function ambilLogo(url?: string): Promise<Logo | null> {
+  if (!url) return null;
+  if (logoTersimpan !== undefined) return logoTersimpan;
+
+  let alamat = "";
+  try {
+    const jawab = await fetch(url, { credentials: "same-origin" });
+    if (!jawab.ok) throw new Error("logo tidak terbaca");
+    const isi = await jawab.blob();
+    alamat = URL.createObjectURL(isi);
+
+    const muat = (denganCors: boolean) =>
+      new Promise<HTMLImageElement>((selesai, gagal) => {
+        const gambar = new Image();
+        if (denganCors) gambar.crossOrigin = "anonymous";
+        gambar.onload = () => selesai(gambar);
+        gambar.onerror = () => gagal(new Error("logo tidak bisa ditampilkan"));
+        gambar.src = alamat;
+      });
+
+    const gambar = await muat(false);
+    const rasio = gambar.naturalWidth && gambar.naturalHeight ? gambar.naturalWidth / gambar.naturalHeight : 1;
+
+    /* Logo diperkecil lebih dulu: gambar besar membuat berkas PDF ikut membengkak. */
+    const bagi = (nama: HTMLImageElement) => {
+      const sisi = 128;
+      const lebar = nama.naturalWidth >= nama.naturalHeight ? sisi : Math.max(1, Math.round(sisi * rasio));
+      const tinggi = nama.naturalWidth >= nama.naturalHeight ? Math.max(1, Math.round(sisi / rasio)) : sisi;
+      const kanvas = document.createElement("canvas");
+      kanvas.width = lebar;
+      kanvas.height = tinggi;
+      const konteks = kanvas.getContext("2d");
+      if (!konteks) throw new Error("kanvas tidak tersedia");
+      konteks.drawImage(nama, 0, 0, lebar, tinggi);
+      return kanvas.toDataURL("image/png");
+    };
+
+    let dataUrl: string;
+    let format: "PNG" | "JPEG" = "PNG";
+
+    try {
+      dataUrl = bagi(gambar);
+    } catch {
+      /* Kanvas menolak gambar lintas situs tanpa izin: pakai berkas aslinya bila bisa. */
+      if (isi.type !== "image/png" && isi.type !== "image/jpeg") throw new Error("logo tidak bisa dikecilkan");
+      format = isi.type === "image/jpeg" ? "JPEG" : "PNG";
+      dataUrl = await new Promise<string>((selesai, gagal) => {
+        const pembaca = new FileReader();
+        pembaca.onload = () => selesai(String(pembaca.result));
+        pembaca.onerror = () => gagal(new Error("logo gagal dibaca"));
+        pembaca.readAsDataURL(isi);
+      });
+    }
+
+    logoTersimpan = { dataUrl, format, rasio };
+    return logoTersimpan;
+  } catch {
+    logoTersimpan = null;
+    return null;
+  } finally {
+    if (alamat) URL.revokeObjectURL(alamat);
+  }
+}
+
+const UKURAN_CHIP = { lebar: 22, tinggi: 15 };
+
+/**
+ * Tanda ✓ / X / – digambar sebagai garis vektor, jadi tampil sama di semua pembaca PDF.
+ * Bentuknya chip kecil di tengah sel, sama seperti lencana di tabel layar.
+ */
 function gambarTanda(dok: import("jspdf").jsPDF, status: StatusSelLaporan, kotak: Kotak) {
-  const { x, y, width, height } = kotak;
+  const lebar = UKURAN_CHIP.lebar;
+  const tinggi = UKURAN_CHIP.tinggi;
+  const chipX = kotak.x + (kotak.width - lebar) / 2;
+  const chipY = kotak.y + (kotak.height - tinggi) / 2;
+
   const latar = LATAR_SEL[status];
   if (latar) {
     dok.setFillColor(latar);
-    dok.rect(x + 0.8, y + 0.8, width - 1.6, height - 1.6, "F");
+    dok.roundedRect(chipX, chipY, lebar, tinggi, 3.5, 3.5, "F");
   }
 
+  const tengahX = chipX + lebar / 2;
+  const tengahY = chipY + tinggi / 2;
+
   dok.setDrawColor(TINTA_SEL[status]);
-  dok.setLineWidth(1.1);
+  dok.setLineWidth(1.25);
   dok.setLineCap("round");
 
-  const tengahX = x + width / 2;
-  const tengahY = y + height / 2;
-
   if (status === "belum") {
-    dok.line(tengahX - 3.2, tengahY - 3.2, tengahX + 3.2, tengahY + 3.2);
-    dok.line(tengahX + 3.2, tengahY - 3.2, tengahX - 3.2, tengahY + 3.2);
+    dok.line(tengahX - 3, tengahY - 3, tengahX + 3, tengahY + 3);
+    dok.line(tengahX + 3, tengahY - 3, tengahX - 3, tengahY + 3);
   } else if (status === "kosong") {
-    dok.line(tengahX - 3.2, tengahY, tengahX + 3.2, tengahY);
+    dok.line(tengahX - 3.4, tengahY, tengahX + 3.4, tengahY);
   } else {
     dok.line(tengahX - 3.4, tengahY, tengahX - 1, tengahY + 3.4);
     dok.line(tengahX - 1, tengahY + 3.4, tengahX + 3.6, tengahY - 3.4);
   }
-
-  /* garis bawah sel dikembalikan supaya kerangka tabel tetap rapi */
-  dok.setDrawColor(WARNA.garis);
-  dok.setLineWidth(0.5);
-  dok.line(x, y + height, x + width, y + height);
 }
 
+/** Nama peserta digambar sendiri supaya barisnya rapat: nama tebal, kelas kecil di bawahnya. */
 function gambarNama(dok: import("jspdf").jsPDF, baris: BarisLaporan, kotak: Kotak) {
-  const { x, y, width, height } = kotak;
-  const kiri = x + 6;
-  const batas = width - 12;
+  const kiri = kotak.x + 7;
+  const batas = kotak.width - 14;
+  const tengah = kotak.y + kotak.height / 2;
   const potongan = dok.splitTextToSize(baris.nama, batas);
 
   dok.setFont("helvetica", "bold");
-  dok.setFontSize(8);
+  dok.setFontSize(8.5);
   dok.setTextColor(WARNA.tinta);
 
   if (potongan.length > 1) {
-    dok.text(potongan.slice(0, 2), kiri, y + height / 2 - 4);
+    dok.text(potongan.slice(0, 2), kiri, tengah - 4.5);
     return;
   }
 
-  dok.text(potongan[0], kiri, y + height / 2 - 2);
+  dok.text(potongan[0], kiri, tengah - 2.5);
 
   const anak = subNama(baris);
   if (anak) {
     dok.setFont("helvetica", "normal");
     dok.setFontSize(6.5);
     dok.setTextColor(WARNA.abuAbu);
-    dok.text(dok.splitTextToSize(anak, batas)[0], kiri, y + height / 2 + 8);
+    dok.text(dok.splitTextToSize(anak, batas)[0], kiri, tengah + 7.5);
   }
 }
 
-/** Berkas PDF satu laporan, lengkap dengan kepala berkas dan angka ringkas. */
+/** Berkas PDF satu laporan: kop dengan logo, angka ringkas, tabel, lalu catatan di kaki. */
 export async function buatLaporanPdf(laporan: JawabanLaporan, opsi: OpsiEksporLaporan): Promise<Blob> {
   const { jsPDF } = await import("jspdf");
   const autoTable = (await import("jspdf-autotable")).default;
 
   const kolom = laporan.kolom;
-  const dok = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4" });
+  /* compress: isi berkasnya dipadatkan supaya mudah dikirim lewat WhatsApp. */
+  const dok = new jsPDF({ orientation: "landscape", unit: "pt", format: "a4", compress: true });
   const lebarHalaman = dok.internal.pageSize.getWidth();
   const tinggiHalaman = dok.internal.pageSize.getHeight();
-  const tepi = 26;
+  const tepi = 28;
   const lebarIsi = lebarHalaman - tepi * 2;
+  /* Ruang di bawah tabel untuk catatan, legenda tanda, dan nomor halaman. */
+  const tinggiKaki = 48;
 
-  /* -------------------------------- kepala berkas -------------------------------- */
+  const logo = await ambilLogo(opsi.logo);
+  const badan = opsi.badan?.trim() || "PC PERSIS Cibatu";
+  const wilayah = opsi.wilayah?.trim() ?? "";
+
+  /* ---------------------------------- kop ---------------------------------- */
+  const sisiLogo = 40;
+  let tepiKananKop = lebarHalaman - tepi;
+  if (logo) {
+    const lebarLogo = sisiLogo * logo.rasio;
+    dok.addImage(logo.dataUrl, logo.format, lebarHalaman - tepi - lebarLogo, 24, lebarLogo, sisiLogo, "logoKop");
+    tepiKananKop = lebarHalaman - tepi - lebarLogo - 10;
+  }
+
+  const dasarBadan = logo ? 41 : 33;
   dok.setFont("helvetica", "bold");
-  dok.setFontSize(13);
+  dok.setFontSize(11.5);
   dok.setTextColor(WARNA.persis);
-  dok.text(`Laporan ${opsi.judul}`, tepi, 32);
+  dok.text(badan, tepiKananKop, dasarBadan, { align: "right" });
+
+  if (wilayah) {
+    dok.setFont("helvetica", "normal");
+    dok.setFontSize(7);
+    dok.setTextColor(WARNA.abuAbu);
+    dok.text(wilayah, tepiKananKop, dasarBadan + 10, { align: "right" });
+  }
+
+  dok.setFont("helvetica", "bold");
+  dok.setFontSize(14);
+  dok.setTextColor(WARNA.persis);
+  dok.text(`Laporan ${opsi.judul}`, tepi, 36);
 
   dok.setFont("helvetica", "normal");
   dok.setFontSize(8.5);
   dok.setTextColor(WARNA.tintaMuda);
-  dok.text(barisKeterangan(laporan, opsi), tepi, 46);
+  dok.text(barisKeterangan(laporan, opsi), tepi, 50);
 
   dok.setFontSize(7.5);
   dok.setTextColor(WARNA.abuAbu);
-  dok.text(`Diekspor ${tanggalIndo()}${opsi.keterangan ? ` · ${opsi.keterangan}` : ""}`, tepi, 58);
+  dok.text(`Diekspor ${tanggalIndo()}${opsi.keterangan ? ` · ${opsi.keterangan}` : ""}`, tepi, 61);
 
   dok.setDrawColor(WARNA.persis);
-  dok.setLineWidth(1.2);
-  dok.line(tepi, 66, lebarHalaman - tepi, 66);
+  dok.setLineWidth(1.4);
+  dok.line(tepi, 72, lebarHalaman - tepi, 72);
+  dok.setDrawColor(WARNA.garis);
+  dok.setLineWidth(0.6);
+  dok.line(tepi, 74.5, lebarHalaman - tepi, 74.5);
+  dok.setLineWidth(0.5);
 
-  /* -------------------------------- angka ringkas -------------------------------- */
+  /* ------------------------------ angka ringkas ------------------------------ */
   const kartu = [
     {
       judul: "DITAGIHKAN",
@@ -444,37 +560,44 @@ export async function buatLaporanPdf(laporan: JawabanLaporan, opsi: OpsiEksporLa
     },
   ];
 
+  const tinggiKartu = 34;
+  const yKartu = 84;
   const lebarKartu = (lebarIsi - 16) / 3;
+
   kartu.forEach((k, urutan) => {
     const x = tepi + urutan * (lebarKartu + 8);
-    const y = 76;
-    const tinggi = 34;
     dok.setFillColor(k.latar);
     dok.setDrawColor(k.tepiKartu);
     dok.setLineWidth(0.8);
-    dok.roundedRect(x, y, lebarKartu, tinggi, 5, 5, "FD");
+    dok.roundedRect(x, yKartu, lebarKartu, tinggiKartu, 5, 5, "FD");
 
     dok.setFont("helvetica", "bold");
     dok.setFontSize(6.5);
     dok.setTextColor(k.judulWarna);
-    dok.text(k.judul, x + 7, y + 11);
+    dok.text(k.judul, x + 8, yKartu + 12);
 
-    dok.setFontSize(11.5);
+    dok.setFontSize(12);
     dok.setTextColor(k.nilaiWarna);
-    dok.text(k.nilai, x + 7, y + 25);
+    dok.text(k.nilai, x + 8, yKartu + 26);
 
     dok.setFont("helvetica", "normal");
     dok.setFontSize(6.5);
     dok.setTextColor(k.catatanWarna);
-    dok.text(k.catatan, x + lebarKartu - 7, y + 25, { align: "right" });
+    dok.text(k.catatan, x + lebarKartu - 8, yKartu + 26, { align: "right" });
   });
 
-  /* ----------------------------------- tabel ----------------------------------- */
-  const lebarBulan = Math.max(30, Math.min(46, (lebarIsi - 170 - 128) / Math.max(1, kolom.length)));
-  const lebarTotal = 64;
+  dok.setLineWidth(0.5);
+
+  /* ---------------------------------- tabel ---------------------------------- */
+  const lebarNama = 176;
+  const lebarTotal = 67;
+  const lebarBulan = Math.max(
+    26,
+    Math.min(46, (lebarIsi - lebarNama - lebarTotal * 2) / Math.max(1, kolom.length)),
+  );
 
   const gayaKolom: Record<string, Partial<Styles>> = {
-    "0": { cellWidth: 170, halign: "left" },
+    "0": { cellWidth: lebarNama, halign: "left" },
   };
   kolom.forEach((_, urutan) => {
     gayaKolom[String(urutan + 1)] = { cellWidth: lebarBulan, halign: "center" };
@@ -509,8 +632,8 @@ export async function buatLaporanPdf(laporan: JawabanLaporan, opsi: OpsiEksporLa
   const nomorKolomSisa = kolom.length + 2;
 
   autoTable(dok, {
-    startY: 122,
-    margin: { left: tepi, right: tepi },
+    startY: 132,
+    margin: { top: 58, left: tepi, right: tepi, bottom: tinggiKaki + 8 },
     tableWidth: "auto",
     head: [["Nama", ...kolom.map((k) => k.label), "Total lunas", "Sisa tunggakan"]],
     body: isiTabel,
@@ -521,10 +644,10 @@ export async function buatLaporanPdf(laporan: JawabanLaporan, opsi: OpsiEksporLa
     styles: {
       font: "helvetica",
       fontSize: 8,
-      cellPadding: { top: 3, right: 4, bottom: 3, left: 4 },
+      cellPadding: { top: 2.5, right: 5, bottom: 2.5, left: 4 },
       textColor: WARNA.tinta,
       valign: "middle",
-      minCellHeight: 24,
+      minCellHeight: 21,
       lineColor: WARNA.garis,
       lineWidth: { top: 0, right: 0, bottom: 0.5, left: 0 },
     },
@@ -533,9 +656,9 @@ export async function buatLaporanPdf(laporan: JawabanLaporan, opsi: OpsiEksporLa
       textColor: WARNA.abuAbu,
       fontStyle: "bold",
       fontSize: 7,
-      minCellHeight: 20,
-      cellPadding: { top: 5, right: 4, bottom: 5, left: 4 },
-      lineWidth: { top: 0, right: 0, bottom: 0.5, left: 0 },
+      minCellHeight: 19,
+      cellPadding: { top: 4.5, right: 5, bottom: 4.5, left: 4 },
+      lineWidth: { top: 0.5, right: 0, bottom: 0.5, left: 0 },
     },
     footStyles: {
       fillColor: WARNA.kremTua,
@@ -543,7 +666,7 @@ export async function buatLaporanPdf(laporan: JawabanLaporan, opsi: OpsiEksporLa
       fontStyle: "bold",
       fontSize: 7.5,
       lineColor: WARNA.garis,
-      lineWidth: { top: 0.5, right: 0, bottom: 0, left: 0 },
+      lineWidth: { top: 0.5, right: 0, bottom: 0.5, left: 0 },
     },
     columnStyles: gayaKolom,
     didParseCell: (data) => {
@@ -557,6 +680,37 @@ export async function buatLaporanPdf(laporan: JawabanLaporan, opsi: OpsiEksporLa
         data.cell.styles.textColor = WARNA.persis;
         data.cell.styles.fontStyle = "bold";
       }
+    },
+    didDrawPage: (data) => {
+      /* Halaman lanjutan diberi kepala ringkas supaya berkas tetap jelas milik siapa. */
+      if (data.pageNumber === 1) return;
+      const y = 30;
+      const lebarLogoLanjutan = logo ? 24 * logo.rasio : 0;
+      const tepiKananLanjutan = lebarHalaman - tepi - (logo ? lebarLogoLanjutan + 8 : 0);
+
+      dok.setFont("helvetica", "bold");
+      dok.setFontSize(10.5);
+      dok.setTextColor(WARNA.persis);
+      dok.text(`Laporan ${opsi.judul} — lanjutan`, tepi, y);
+
+      dok.setFont("helvetica", "normal");
+      dok.setFontSize(7.5);
+      dok.setTextColor(WARNA.abuAbu);
+      dok.text(barisKeterangan(laporan, opsi), tepi, y + 11);
+
+      dok.setFont("helvetica", "bold");
+      dok.setFontSize(9);
+      dok.setTextColor(WARNA.persis);
+      dok.text(badan, tepiKananLanjutan, y, { align: "right" });
+
+      if (logo) {
+        dok.addImage(logo.dataUrl, logo.format, lebarHalaman - tepi - lebarLogoLanjutan, y - 13, lebarLogoLanjutan, 24, "logoKop");
+      }
+
+      dok.setDrawColor(WARNA.garis);
+      dok.setLineWidth(0.6);
+      dok.line(tepi, y + 20, lebarHalaman - tepi, y + 20);
+      dok.setLineWidth(0.5);
     },
     didDrawCell: (data) => {
       if (data.section !== "body") return;
@@ -574,39 +728,36 @@ export async function buatLaporanPdf(laporan: JawabanLaporan, opsi: OpsiEksporLa
     },
   });
 
-  /* ---------------------------------- catatan ---------------------------------- */
-  const akhirTabel =
-    (dok as unknown as { lastAutoTable?: { finalY: number } }).lastAutoTable?.finalY ?? tinggiHalaman - 60;
-  let posisiCatatan = akhirTabel + 16;
+  /* ---------------------------- catatan kaki halaman ---------------------------- */
+  const yLegenda = tinggiHalaman - 32;
+  const catatanKaki = [
+    laporan.cari ? `Disaring dengan pencarian “${laporan.cari}”.` : "",
+    laporan.saring === "aktif" ? "Saringan peserta: hanya yang berstatus aktif." : "",
+    laporan.penuh ? "Laporan memuat lebih dari 500 nama; yang diekspor 500 nama pertama saja." : "",
+  ].filter(Boolean);
 
-  dok.setFont("helvetica", "normal");
-  dok.setFontSize(7);
-  let posisiX = tepi;
+  catatanKaki.forEach((teks, urutan) => {
+    dok.setFont("helvetica", "normal");
+    dok.setFontSize(7);
+    dok.setTextColor(WARNA.abuAbu);
+    dok.text(teks, tepi, yLegenda - 10 - (catatanKaki.length - 1 - urutan) * 10);
+  });
+
   const legenda: { status: StatusSelLaporan; teks: string }[] = [
     { status: "lunas", teks: "sudah dibayar" },
     { status: "menunggu", teks: "sudah dibayar, menunggu verifikasi" },
     { status: "belum", teks: "belum dibayar" },
     { status: "kosong", teks: "belum ditagihkan" },
   ];
+
+  let xLegenda = tepi;
   legenda.forEach((l) => {
-    gambarTanda(dok, l.status, { x: posisiX, y: posisiCatatan - 8, width: 11, height: 11 });
+    gambarTanda(dok, l.status, { x: xLegenda, y: yLegenda - 9, width: UKURAN_CHIP.lebar, height: UKURAN_CHIP.tinggi });
+    dok.setFont("helvetica", "normal");
     dok.setFontSize(7);
     dok.setTextColor(WARNA.tintaMuda);
-    dok.text(l.teks, posisiX + 14, posisiCatatan);
-    posisiX += 14 + dok.getTextWidth(l.teks) + 16;
-  });
-
-  const catatanKaki = [
-    laporan.cari ? `Disaring dengan pencarian “${laporan.cari}”.` : "",
-    laporan.saring ? `Saringan peserta: ${laporan.saring === "aktif" ? "hanya yang aktif" : "semua nama"}.` : "",
-    laporan.penuh ? "Laporan memuat lebih dari 500 nama; yang diekspor 500 nama pertama saja." : "",
-  ].filter(Boolean);
-
-  catatanKaki.forEach((teks) => {
-    posisiCatatan += 11;
-    dok.setFontSize(7);
-    dok.setTextColor(WARNA.abuAbu);
-    dok.text(teks, tepi, posisiCatatan);
+    dok.text(l.teks, xLegenda + UKURAN_CHIP.lebar + 5, yLegenda);
+    xLegenda += UKURAN_CHIP.lebar + 5 + dok.getTextWidth(l.teks) + 18;
   });
 
   /* ------------------------------ kaki tiap halaman ------------------------------ */
@@ -616,9 +767,9 @@ export async function buatLaporanPdf(laporan: JawabanLaporan, opsi: OpsiEksporLa
     dok.setFont("helvetica", "normal");
     dok.setFontSize(7);
     dok.setTextColor(WARNA.abuAbu);
-    dok.text(opsi.unit ?? "PC PERSIS Cibatu", tepi, tinggiHalaman - 14);
-    dok.text(`Halaman ${halaman} dari ${jumlahHalaman}`, lebarHalaman / 2, tinggiHalaman - 14, { align: "center" });
-    dok.text(`Dicetak ${tanggalIndo()}`, lebarHalaman - tepi, tinggiHalaman - 14, { align: "right" });
+    dok.text(opsi.unit ?? badan, tepi, tinggiHalaman - 16);
+    dok.text(`Halaman ${halaman} dari ${jumlahHalaman}`, lebarHalaman / 2, tinggiHalaman - 16, { align: "center" });
+    dok.text(`Dicetak ${tanggalIndo()}`, lebarHalaman - tepi, tinggiHalaman - 16, { align: "right" });
   }
 
   return dok.output("blob");
