@@ -15,28 +15,6 @@ export function didukungPush(): boolean {
   );
 }
 
-/**
- * Apakah halaman sedang dibuka dari dalam aplikasi Android/iOS berbasis WebView
- * (mis. APK hasil pembungkus situs). Lingkungan seperti itu tidak punya service
- * worker maupun PushManager, jadi notifikasi layar memang tidak bisa dipakai —
- * di sana ikon lonceng yang menjadi jalur kabar terbaru.
- */
-export function diDalamAplikasi(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent || "";
-  /* WebView Android menandai dirinya dengan "wv"; WebView iOS tidak punya "Safari". */
-  const webviewAndroid = /Android/i.test(ua) && (/;\s?wv\)?/i.test(ua) || !/Chrome\/\d/i.test(ua));
-  const webviewIos = /iPhone|iPad|iPod/i.test(ua) && !/Safari/i.test(ua);
-  return webviewAndroid || webviewIos;
-}
-
-/** Kalimat yang dipakai saat notifikasi layar tidak bisa diaktifkan di perangkat ini. */
-export function pesanTanpaPush(): string {
-  return diDalamAplikasi()
-    ? "Notifikasi ke layar HP belum bisa dikirim dari dalam aplikasi ini. Kabar terbaru tetap muncul pada ikon lonceng di atas."
-    : "Peramban ini belum mendukung notifikasi ke layar HP. Kabar terbaru tetap muncul pada ikon lonceng di atas.";
-}
-
 export function endpointTersimpan(): string | null {
   try {
     return window.localStorage.getItem(KUNCI_ENDPOINT);
@@ -120,7 +98,7 @@ export type HasilPush = { ok: boolean; pesan: string; endpoint?: string; jumlah?
  */
 export async function aktifkanPush(): Promise<HasilPush> {
   if (!didukungPush()) {
-    return { ok: false, pesan: pesanTanpaPush() };
+    return { ok: false, pesan: "Peramban ini belum mendukung notifikasi push. Kabar terbaru tetap muncul di ikon lonceng." };
   }
   if (window.Notification.permission !== "granted") {
     return { ok: false, pesan: "Izin notifikasi belum diberikan untuk situs ini." };
@@ -195,7 +173,7 @@ async function langgananPerangkat(): Promise<PushSubscription> {
  */
 export async function daftarkanPushWali(): Promise<HasilPush> {
   if (!didukungPush()) {
-    return { ok: false, pesan: `${pesanTanpaPush()} Tagihan dan nilai tetap bisa dibuka di portal wali.` };
+    return { ok: false, pesan: "Peramban ini belum mendukung notifikasi push. Tagihan dan nilai tetap bisa dibuka di portal wali." };
   }
   if (window.Notification.permission !== "granted") {
     return { ok: false, pesan: "Izin notifikasi belum diberikan. Ketuk Aktifkan notifikasi untuk mengizinkannya." };
