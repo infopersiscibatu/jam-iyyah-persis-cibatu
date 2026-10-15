@@ -1,7 +1,8 @@
 /** Hash fragments never reach social crawlers; use a server-visible URL. */
 export function jalurBagikan(jalur: string): string {
   const cocok = /^\/#\/(artikel\/[^/?#]+|berita\/[^/?#]+|beranda\/(?:pengumuman|agenda)\/[^/?#]+|galeri\/[^/?#]+|info\/[^/?#]+)$/.exec(jalur);
-  return cocok ? `/api/public/bagikan/${cocok[1]}` : jalur;
+  // URL pendek: namadomain/slug-konten (dilayani rute /$slug).
+  return cocok ? `/${cocok[1].split("/").pop()}` : jalur;
 }
 
 export function tujuanBagikan(jalur: string): { jenis: string; id: string; hash: string } | null {

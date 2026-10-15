@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SlugRouteImport } from './routes/$slug'
 import { Route as ApiSplatRouteImport } from './routes/api/$'
 import { Route as BerkasSplatRouteImport } from './routes/berkas/$'
 import { Route as ApiPublicBagikanSplatRouteImport } from './routes/api/public/bagikan/$'
@@ -17,6 +18,11 @@ import { Route as ApiPublicBagikanSplatRouteImport } from './routes/api/public/b
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SlugRoute = SlugRouteImport.update({
+  id: '/$slug',
+  path: '/$slug',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiSplatRoute = ApiSplatRouteImport.update({
@@ -37,12 +43,14 @@ const ApiPublicBagikanSplatRoute = ApiPublicBagikanSplatRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/api/$': typeof ApiSplatRoute
   '/berkas/$': typeof BerkasSplatRoute
   '/api/public/bagikan/$': typeof ApiPublicBagikanSplatRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/api/$': typeof ApiSplatRoute
   '/berkas/$': typeof BerkasSplatRoute
   '/api/public/bagikan/$': typeof ApiPublicBagikanSplatRoute
@@ -50,20 +58,28 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/$slug': typeof SlugRoute
   '/api/$': typeof ApiSplatRoute
   '/berkas/$': typeof BerkasSplatRoute
   '/api/public/bagikan/$': typeof ApiPublicBagikanSplatRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/api/$' | '/berkas/$' | '/api/public/bagikan/$'
+  fullPaths: '/' | '/$slug' | '/api/$' | '/berkas/$' | '/api/public/bagikan/$'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/api/$' | '/berkas/$' | '/api/public/bagikan/$'
-  id: '__root__' | '/' | '/api/$' | '/berkas/$' | '/api/public/bagikan/$'
+  to: '/' | '/$slug' | '/api/$' | '/berkas/$' | '/api/public/bagikan/$'
+  id:
+    | '__root__'
+    | '/'
+    | '/$slug'
+    | '/api/$'
+    | '/berkas/$'
+    | '/api/public/bagikan/$'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  SlugRoute: typeof SlugRoute
   ApiSplatRoute: typeof ApiSplatRoute
   BerkasSplatRoute: typeof BerkasSplatRoute
   ApiPublicBagikanSplatRoute: typeof ApiPublicBagikanSplatRoute
@@ -76,6 +92,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/$slug': {
+      id: '/$slug'
+      path: '/$slug'
+      fullPath: '/$slug'
+      preLoaderRoute: typeof SlugRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/$': {
@@ -104,6 +127,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  SlugRoute: SlugRoute,
   ApiSplatRoute: ApiSplatRoute,
   BerkasSplatRoute: BerkasSplatRoute,
   ApiPublicBagikanSplatRoute: ApiPublicBagikanSplatRoute,
