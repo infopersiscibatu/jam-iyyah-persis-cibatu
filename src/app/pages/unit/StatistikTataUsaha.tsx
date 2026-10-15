@@ -244,12 +244,6 @@ export default function StatistikTataUsaha({ versi = 0 }: { versi?: number }) {
         />
       </div>
 
-   {/* 4 Kartu Angka Pokok Tagihan */}
-   <div className="mt-3.5 grid grid-cols-2 gap-2.5">
-     ...
-     <Kartu testid="tu-kartu-menunggu" ... />
-   </div>
-
    {/* Antrean verifikasi pembayaran langsung di dashboard */}
    <AntreanVerifikasiPembayaran
      versi={versi}
