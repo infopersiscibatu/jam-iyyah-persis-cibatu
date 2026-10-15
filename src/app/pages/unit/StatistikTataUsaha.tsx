@@ -3,6 +3,7 @@ import { Icon } from "../../components/Icons";
 import { rupiah, rupiahSingkat } from "../../lib/format";
 import { LABEL_TAGIHAN, ambilStatistikTataUsaha, type StatistikTataUsaha, type TagihanTataUsaha } from "../../lib/unitTataUsaha";
 import { useIstilah } from "../../lib/istilah";
+import AntreanVerifikasiPembayaran from "./AntreanVerifikasiPembayaran";
 
 /**
  * Dashboard Admin Tata Usaha: statistik tagihan sekolah yang sedang masuk —
