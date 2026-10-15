@@ -104,7 +104,6 @@ export default function HalamanUnitTataUsaha({
         {menu === "dashboard" ? <StatistikTataUsaha versi={versi} /> : null}
         {menu === "tagihan" ? <TabelTagihan onBerubah={() => setVersi((v) => v + 1)} /> : null}
         {menu === "kategori" ? <KategoriTagihan /> : null}
-        {menu === "pembayaran" ? <PembayaranTagihan onBerubah={() => setVersi((v) => v + 1)} /> : null}
         {menu === "metode" ? <MetodePembayaran /> : null}
         {menu === "tunggakan" ? <TunggakanLunas onBerubah={() => setVersi((v) => v + 1)} /> : null}
       </div>
