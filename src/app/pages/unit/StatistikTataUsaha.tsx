@@ -244,6 +244,18 @@ export default function StatistikTataUsaha({ versi = 0 }: { versi?: number }) {
         />
       </div>
 
+   {/* 4 Kartu Angka Pokok Tagihan */}
+   <div className="mt-3.5 grid grid-cols-2 gap-2.5">
+     ...
+     <Kartu testid="tu-kartu-menunggu" ... />
+   </div>
+
+   {/* Antrean verifikasi pembayaran langsung di dashboard */}
+   <AntreanVerifikasiPembayaran
+     versi={versi}
+     onBerubah={() => void muat(true)}
+   />
+
       {/* Tunggakan per jenis tagihan */}
       <section data-testid="tu-per-jenis" className="mt-3.5 rounded-2xl border border-black/[0.08] bg-white p-4">
         <h2 className="font-header text-[12.5px] font-bold text-ink-900">Tunggakan per jenis tagihan</h2>
