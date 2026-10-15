@@ -16,8 +16,9 @@ import {
  *
  * Petugas memilih dahulu laporan mana yang mau dilihat — satu jenis tagihan, misalnya
  * SPP Bulanan, UKT Semester, atau Almamater — baru tabel laporannya ditampilkan.
- * Kolom bulan bisa digeser mendatar, sedangkan kolom nama, total lunas, dan sisa
- * tunggakan tetap di tempat supaya namanya tidak pernah hilang dari pandangan.
+ * Kolom bulan, total lunas, dan sisa tunggakan bisa digeser mendatar bersama-sama,
+ * sedangkan kolom nama tetap di tempat supaya namanya tidak pernah hilang dari
+ * pandangan.
  *
  * Sel tabel ditandai ✓ bila sudah dibayar, X bila belum dibayar, dan – bila bulannya
  * belum ditagihkan. Nominal tiap sel terlihat saat kursor diarahkan ke selnya (atau
@@ -62,7 +63,6 @@ const SARING = [
 ];
 
 const TEBAL_NAMA = "shadow-[6px_0_6px_-6px_rgba(6,36,25,0.22)]";
-const TEBAL_KANAN = "shadow-[-6px_0_6px_-6px_rgba(6,36,25,0.22)]";
 
 export default function LaporanTagihan() {
   const istilah = useIstilah();
@@ -362,13 +362,13 @@ export default function LaporanTagihan() {
                     ))}
                     <th
                       scope="col"
-                      className={`sticky top-0 right-[84px] z-30 w-[84px] min-w-[84px] border-b border-black/[0.07] bg-cream-50 px-1.5 py-2 text-right text-[9px] font-bold tracking-[0.04em] text-ink-400 uppercase ${TEBAL_KANAN}`}
+                      className="sticky top-0 z-20 w-[84px] min-w-[84px] border-b border-l border-black/[0.07] bg-cream-50 px-1.5 py-2 text-right text-[9px] font-bold tracking-[0.04em] text-ink-400 uppercase"
                     >
                       Total lunas
                     </th>
                     <th
                       scope="col"
-                      className="sticky top-0 right-0 z-30 w-[84px] min-w-[84px] border-b border-black/[0.07] bg-cream-50 px-1.5 py-2 text-right text-[9px] font-bold tracking-[0.04em] text-ink-400 uppercase"
+                      className="sticky top-0 z-20 w-[84px] min-w-[84px] border-b border-black/[0.07] bg-cream-50 px-1.5 py-2 text-right text-[9px] font-bold tracking-[0.04em] text-ink-400 uppercase"
                     >
                       Sisa tunggakan
                     </th>
@@ -413,7 +413,7 @@ export default function LaporanTagihan() {
                       })}
 
                       <td
-                        className={`sticky right-[84px] z-10 border-b border-black/[0.05] bg-white px-1.5 py-2 text-right align-middle text-[10px] font-semibold text-persis-900 ${TEBAL_KANAN}`}
+                        className="border-b border-l border-black/[0.05] bg-white px-1.5 py-2 text-right align-middle text-[10px] font-semibold text-persis-900"
                       >
                         {b.lunas > 0 ? rupiahSingkat(b.lunas) : "—"}
                         <span className="mt-0.5 hidden text-[8.5px] font-normal text-ink-400 sm:block">
@@ -421,7 +421,7 @@ export default function LaporanTagihan() {
                         </span>
                       </td>
                       <td
-                        className={`sticky right-0 z-10 border-b border-black/[0.05] bg-white px-1.5 py-2 text-right align-middle text-[10px] font-semibold ${
+                        className={`border-b border-black/[0.05] bg-white px-1.5 py-2 text-right align-middle text-[10px] font-semibold ${
                           b.tunggakan > 0 ? "text-rose-700" : "text-ink-400"
                         }`}
                       >
@@ -457,12 +457,12 @@ export default function LaporanTagihan() {
                       );
                     })}
                     <td
-                      className={`sticky bottom-0 right-[84px] z-30 border-t border-black/[0.08] bg-cream-100 px-1.5 py-2 text-right text-[10px] font-extrabold text-persis-900 ${TEBAL_KANAN}`}
+                      className="sticky bottom-0 z-20 border-t border-l border-black/[0.08] bg-cream-100 px-1.5 py-2 text-right text-[10px] font-extrabold text-persis-900"
                     >
                       {ringkasan ? rupiahSingkat(ringkasan.lunas) : "—"}
                     </td>
                     <td
-                      className={`sticky bottom-0 right-0 z-30 border-t border-black/[0.08] bg-cream-100 px-1.5 py-2 text-right text-[10px] font-extrabold ${
+                      className={`sticky bottom-0 z-20 border-t border-black/[0.08] bg-cream-100 px-1.5 py-2 text-right text-[10px] font-extrabold ${
                         ringkasan && ringkasan.tunggakan > 0 ? "text-rose-700" : "text-ink-400"
                       }`}
                     >
@@ -486,8 +486,8 @@ export default function LaporanTagihan() {
               <span>– belum ditagihkan</span>
             </p>
             <p className="mt-1 text-[9.5px] text-ink-400">
-              Geser tabelnya ke samping untuk melihat bulan lain. Kolom nama, total lunas, dan sisa tunggakan tetap di
-              tempat. Angka total mengikuti tahun (kolom) yang sedang ditampilkan.
+              Geser tabelnya ke samping untuk melihat bulan lain, total lunas, dan sisa tunggakan sekaligus. Yang
+              tetap di tempat hanya kolom nama. Angka total mengikuti tahun (kolom) yang sedang ditampilkan.
             </p>
 
             {laporan?.penuh ? (
