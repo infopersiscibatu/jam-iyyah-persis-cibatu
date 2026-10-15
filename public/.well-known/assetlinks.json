@@ -1,10 +1,8 @@
 [{
-  "relation": ["delegate_permission/common.handle_all_urls"],
-  "target": {
-    "namespace": "android_app",
-    "package_name": "com.persiscibatu.id",
-    "sha256_cert_fingerprints": [
-      "A6:76:23:F0:BE:6E:25:AF:16:E3:DC:F5:E7:7B:22:C9:B4:D3:FA:9E:82:E1:35:65:85:C5:F0:42:47:64:B3:51"
-    ]
-  }
-}]
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.persiscibatu.id",
+        "sha256_cert_fingerprints": ["2B:33:DD:96:BB:53:22:A7:27:A6:0F:61:B2:20:D3:B1:5A:7A:31:98:54:3F:08:F7:90:2D:60:F7:DF:57:56:48"]
+      }
+    }]
