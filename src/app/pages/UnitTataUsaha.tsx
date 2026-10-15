@@ -26,6 +26,7 @@ const menuUnit = (t: Istilah): MenuUnit[] => [
   { id: "metode", label: "Metode Pembayaran", ikon: "wallet" },
   /* Menggantikan tabel alumni: laporan tagihan per nama. */
   { id: "tunggakan", label: "Tunggakan & Lunas", ikon: "clipboard" },
+  { id: "laporan", label: "Laporan", ikon: "eye" },
 ];
 
 export default function HalamanUnitTataUsaha({
