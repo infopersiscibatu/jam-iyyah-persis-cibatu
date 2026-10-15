@@ -1319,6 +1319,278 @@ const __ekspor = function pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBul
     }
   });
 
+    /* ---------------------------------- laporan ---------------------------------- */
+
+  /*
+   * Menu Laporan: petugas memilih dahulu laporan mana yang mau dilihat — satu kategori
+   * tagihan, misalnya UKT Semester atau Almamater — lalu tabel laporannya ditampilkan.
+   * Tabel memuat nama peserta, deretan bulan (untuk kategori bulanan), total lunas, dan
+   * sisa tunggakan. Tagihan dicocokkan lewat kategori_id, atau nama jenisnya untuk data lama.
+   */
+
+  const NAMA_BULAN = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  const BULAN_PANJANG_LAPORAN = [
+    "Januari", "Februari", "Maret", "April", "Mei", "Juni",
+    "Juli", "Agustus", "September", "Oktober", "November", "Desember",
+  ];
+
+  /** Kunci bulan sebuah tagihan: "2026-07" dari periode, atau dari tanggal jatuh temponya. */
+  const kunciBulan = (t) => {
+    const periode = String(t.periode ?? "");
+    if (/^\d{4}-\d{2}/.test(periode)) return periode.slice(0, 7);
+    const tanggal = keTanggalIso(t.jatuh_tempo) ?? (t.dibuat ? new Date(t.dibuat).toISOString().slice(0, 10) : "");
+    return tanggal ? String(tanggal).slice(0, 7) : "";
+  };
+
+  /** Tahun-tahun yang sudah punya tagihan di sekolah ini, terbaru lebih dahulu. */
+  const tahunTersedia = async (unitId) => {
+    const rows = await daftar(
+      `select distinct coalesce(nullif(left(t.periode, 4), ''), to_char(coalesce(t.jatuh_tempo, t.dibuat::date), 'YYYY')) as tahun
+         from tagihan t
+         join santri s on s.id = t.santri_id
+        where s.unit_id = $1
+        order by tahun desc
+        limit 12`,
+      [unitId],
+    );
+    return rows.map((r) => Number(r.tahun)).filter((n) => Number.isFinite(n) && n > 2000);
+  };
+
+  /** Berapa peserta yang sudah punya tagihan pada tiap kategori (satu kueri untuk semuanya). */
+  const muridPerKategori = async (unitId) => {
+    const rows = await daftar(
+      `select k.id, count(distinct t.santri_id)::int as murid
+         from kategori_tagihan k
+         left join santri s on s.unit_id = k.unit_id
+         left join tagihan t
+           on t.santri_id = s.id
+          and (t.kategori_id = k.id or lower(trim(t.jenis)) = lower(k.nama))
+        where k.unit_id = $1
+        group by k.id`,
+      [unitId],
+    );
+    const peta = new Map();
+    for (const r of rows) peta.set(r.id, angka(r.murid));
+    return peta;
+  };
+
+  /** Daftar pilihan laporan: satu baris satu kategori tagihan sekolah ini. */
+  app.get("/api/unit/tata-usaha/laporan", async (req, res) => {
+    try {
+      const sesi = sekolahWajib(req, res);
+      if (!sesi) return;
+
+      await siapkanTagihanBulanan(sesi.unit_id);
+      const kategori = await ambilKategori(sesi.unit_id);
+      const murid = await muridPerKategori(sesi.unit_id);
+      const tahun = await tahunTersedia(sesi.unit_id);
+      const tahunIni = new Date().getFullYear();
+
+      res.json({
+        ok: true,
+        sebutan: await ambilSebutan(sesi.unit_id),
+        tahun: tahun[0] ?? tahunIni,
+        tahunPilihan: tahun.length > 0 ? tahun : [tahunIni],
+        laporan: kategori.map((k) => ({ ...barisKategori(k), murid: murid.get(k.id) ?? 0 })),
+      });
+    } catch (e) {
+      res.status(500).json({ pesan: e.message });
+    }
+  });
+
+  /** Tabel satu laporan: nama peserta, kolom bulan, total lunas, dan sisa tunggakan. */
+  app.get("/api/unit/tata-usaha/laporan/:id", async (req, res) => {
+    try {
+      const sesi = sekolahWajib(req, res);
+      if (!sesi) return;
+
+      await siapkanTagihanBulanan(sesi.unit_id);
+
+      const kategori = await satu(
+        `select id, nama, keterangan, tipe, nominal, jatuh_tempo_hari
+           from kategori_tagihan
+          where id = $1 and unit_id = $2`,
+        [req.params.id, sesi.unit_id],
+      );
+      if (!kategori) return res.status(404).json({ pesan: "Laporan itu tidak ada pada sekolah ini." });
+
+      const bulanan = kategori.tipe === "bulanan";
+      const daftarTahun = await tahunTersedia(sesi.unit_id);
+      const tahun = /^\d{4}$/.test(String(req.query.tahun ?? ""))
+        ? Number(req.query.tahun)
+        : (daftarTahun[0] ?? new Date().getFullYear());
+      const cari = rapikan(req.query.cari, 60) ?? "";
+      const saring = req.query.saring === "semua" ? "semua" : "aktif";
+
+      /* Peserta yang ditampilkan: yang masih aktif, atau seluruhnya bila petugas memintanya. */
+      const nilai = [sesi.unit_id];
+      let saringPeserta = " and coalesce(s.status, 'aktif') in ('aktif', 'calon')";
+      if (saring === "semua") saringPeserta = " and coalesce(s.status, 'aktif') <> 'nonaktif'";
+      if (cari) {
+        nilai.push(`%${cari}%`);
+        saringPeserta += ` and (s.nama ilike $${nilai.length} or coalesce(s.kelas, '') ilike $${nilai.length})`;
+      }
+
+      const peserta = await daftar(
+        `select s.id, s.nama, coalesce(s.kelas, '') as kelas, coalesce(s.program, '') as program,
+                coalesce(s.status, 'aktif') as status,
+                (select p.nama from jurusan p where p.jenjang_id = s.jenjang_id and p.slug = s.program) as program_nama
+           from santri s
+          where s.unit_id = $1 ${saringPeserta}
+          order by s.nama
+          limit 500`,
+        nilai,
+      );
+
+      /* Seluruh tagihan kategori ini — dicocokkan lewat kategori_id, atau nama jenisnya (data lama). */
+      const tagihan = await daftar(
+        `select t.id, t.santri_id, t.jumlah, t.status, t.periode, t.jatuh_tempo, t.dibuat
+           from tagihan t
+           join santri s on s.id = t.santri_id
+          where s.unit_id = $1
+            and (t.kategori_id = $2 or lower(trim(t.jenis)) = lower($3))
+            and t.status <> 'batal'
+          order by coalesce(t.jatuh_tempo, t.dibuat::date), t.id
+          limit 5000`,
+        [sesi.unit_id, kategori.id, kategori.nama],
+      );
+
+      /* Kolom tabel: dua belas bulan untuk kategori bulanan, atau tahun tagihannya untuk sekali bayar. */
+      const kolom = [];
+      if (bulanan) {
+        for (let i = 1; i <= 12; i++) {
+          kolom.push({
+            kunci: `${tahun}-${String(i).padStart(2, "0")}`,
+            label: NAMA_BULAN[i - 1],
+            keterangan: `${BULAN_PANJANG_LAPORAN[i - 1]} ${tahun}`,
+          });
+        }
+      } else {
+        const tahunAda = [...new Set(tagihan.map((t) => kunciBulan(t).slice(0, 4)).filter(Boolean))].sort();
+        const dipakai = tahunAda.length > 0 ? tahunAda : [String(tahun)];
+        for (const th of dipakai.slice(-12)) {
+          kolom.push({ kunci: th, label: th, keterangan: `Tagihan tahun ${th}` });
+        }
+      }
+      const kunciKolom = new Set(kolom.map((k) => k.kunci));
+
+      /* Satu sel = satu bulan (atau satu tahun) untuk satu peserta. */
+      const urutanStatus = { kosong: 0, belum: 1, menunggu: 2, lunas: 3 };
+      const sel = new Map();
+      for (const t of tagihan) {
+        const kunci = bulanan ? kunciBulan(t) : kunciBulan(t).slice(0, 4);
+        if (!kunciKolom.has(kunci)) continue;
+        if (!sel.has(t.santri_id)) sel.set(t.santri_id, new Map());
+        const perPeserta = sel.get(t.santri_id);
+        const status = ["lunas", "menunggu", "belum"].includes(t.status) ? t.status : "belum";
+        const lama = perPeserta.get(kunci);
+        if (!lama) {
+          perPeserta.set(kunci, {
+            status,
+            nominal: angka(t.jumlah),
+            tagihanId: t.id,
+            jatuhTempo: keTanggalIso(t.jatuh_tempo),
+          });
+          continue;
+        }
+        /* Satu sel bisa memuat lebih dari satu tagihan: nominalnya dijumlahkan, status terkuat dipakai. */
+        lama.nominal += angka(t.jumlah);
+        if (urutanStatus[status] > urutanStatus[lama.status]) {
+          lama.status = status;
+          lama.tagihanId = t.id;
+        }
+      }
+
+      const baris = peserta.map((s) => {
+        const perPeserta = sel.get(s.id) ?? new Map();
+        const isi = {};
+        let ditagih = 0;
+        let lunas = 0;
+        let tunggakan = 0;
+        let jumlahLunas = 0;
+        let jumlahTunggakan = 0;
+        for (const k of kolom) {
+          const isiSel = perPeserta.get(k.kunci);
+          isi[k.kunci] = isiSel ?? { status: "kosong", nominal: 0, tagihanId: "", jatuhTempo: null };
+          if (!isiSel) continue;
+          ditagih += isiSel.nominal;
+          if (isiSel.status === "lunas") {
+            lunas += isiSel.nominal;
+            jumlahLunas += 1;
+          } else {
+            tunggakan += isiSel.nominal;
+            jumlahTunggakan += 1;
+          }
+        }
+        return {
+          id: s.id,
+          nama: s.nama,
+          kelas: s.kelas ?? "",
+          programNama: s.program_nama ?? "",
+          status: s.status ?? "aktif",
+          sel: isi,
+          ditagih,
+          lunas,
+          tunggakan,
+          jumlahLunas,
+          jumlahTunggakan,
+        };
+      });
+      /* Yang paling menunggak ditaruh paling atas supaya langsung terlihat petugas. */
+      baris.sort((a, b) => b.tunggakan - a.tunggakan || a.nama.localeCompare(b.nama, "id"));
+
+      /* Jumlah tiap kolom: berguna untuk melihat penerimaan bulan per bulan. */
+      const kolomJumlah = kolom.map((k) => {
+        let lunasKolom = 0;
+        let nominal = 0;
+        let terisi = 0;
+        for (const b of baris) {
+          const isiSel = b.sel[k.kunci];
+          if (!isiSel || isiSel.status === "kosong") continue;
+          terisi += 1;
+          nominal += isiSel.nominal;
+          if (isiSel.status === "lunas") lunasKolom += isiSel.nominal;
+        }
+        return { kunci: k.kunci, lunas: lunasKolom, nominal, terisi };
+      });
+
+      const total = (pilih) => baris.reduce((n, b) => n + pilih(b), 0);
+
+      res.json({
+        ok: true,
+        sebutan: await ambilSebutan(sesi.unit_id),
+        kategori: {
+          id: kategori.id,
+          nama: kategori.nama,
+          keterangan: kategori.keterangan ?? "",
+          tipe: bulanan ? "bulanan" : "sekali",
+          nominal: angka(kategori.nominal),
+          jatuhTempoHari: kategori.jatuh_tempo_hari ? angka(kategori.jatuh_tempo_hari) : null,
+          jumlahTagihan: tagihan.length,
+        },
+        tahun,
+        tahunPilihan: daftarTahun.length > 0 ? daftarTahun : [tahun],
+        bulanan,
+        kolom,
+        kolomJumlah,
+        baris,
+        cari,
+        saring,
+        penuh: peserta.length >= 500,
+        ringkasan: {
+          peserta: baris.length,
+          ditagih: total((b) => b.ditagih),
+          lunas: total((b) => b.lunas),
+          tunggakan: total((b) => b.tunggakan),
+          sudahLunas: baris.filter((b) => b.jumlahTunggakan === 0 && b.jumlahLunas > 0).length,
+          menunggak: baris.filter((b) => b.jumlahTunggakan > 0).length,
+        },
+      });
+    } catch (e) {
+      res.status(500).json({ pesan: e.message });
+    }
+  });
+  
   /* ---------------------------- metode pembayaran ---------------------------- */
 
   const barisMetode = (m) => ({
