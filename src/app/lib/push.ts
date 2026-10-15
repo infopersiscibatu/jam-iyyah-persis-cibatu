@@ -4,7 +4,14 @@ import { daftarkanNotifikasiWali, lepasNotifikasiWali, statusNotifikasiWali, uji
 /** Notifikasi push (muncul di layar HP, termasuk saat situs sudah ditutup). */
 
 const KUNCI_ENDPOINT = "persis-cibatu-push-endpoint";
-const JEDA_MENIT = 20000;
+/** Batas total penyiapan langganan (ms) — sama seperti sebelumnya, kini dibagi ke beberapa percobaan. */
+const JEDA_TOTAL_MS = 20000;
+/** Batas tiap percobaan langganan (ms). */
+const JEDA_PERCOBAAN_MS = 7000;
+/** Jeda antar percobaan (ms). */
+const JEDA_ULANG_MS = 1500;
+/** Percobaan langganan paling banyak. */
+const PERCOBAAN_MAKS = 4;
 
 export function didukungPush(): boolean {
   return (
@@ -72,6 +79,110 @@ async function ambilKunci(): Promise<string> {
   return data.kunci as string;
 }
 
+/** Apakah galat ini hanya sementara sehingga layak dicoba lagi. */
+function galatSementara(e: unknown): boolean {
+  const p = (e instanceof Error ? e.message : String(e)).toLowerCase();
+  return (
+    p.includes("push service") ||
+    p.includes("network") ||
+    p.includes("abort") ||
+    p.includes("timeout") ||
+    p.includes("service unavailable") ||
+    p.includes("internal error") ||
+    p.includes("waktu penyiapan")
+  );
+}
+
+/**
+ * Minta langganan push ke peramban, dengan beberapa percobaan.
+ *
+ * Kegagalan "push service error" hampir selalu sementara: HP sedang tidak
+ * sempat menghubungi layanan notifikasi Google. Percobaan ulang biasanya
+ * menyembuhkannya tanpa perlu mengubah apa pun di HP. Batas totalnya tetap
+ * 20 detik seperti sebelumnya, hanya dibagi ke beberapa percobaan singkat.
+ */
+async function langgananBaru(
+  daftar: ServiceWorkerRegistration,
+  kunci: string,
+): Promise<PushSubscription> {
+  const batas = Date.now() + JEDA_TOTAL_MS;
+  let terakhir: Error | null = null;
+  for (let percobaan = 1; percobaan <= PERCOBAAN_MAKS; percobaan += 1) {
+    try {
+      return await Promise.race([
+        daftar.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: kunciDariBase64(kunci) as BufferSource,
+        }),
+        new Promise<never>((_, tolak) =>
+          window.setTimeout(
+            () => tolak(new Error("Waktu penyiapan langganan habis.")),
+            JEDA_PERCOBAAN_MS,
+          ),
+        ),
+      ]);
+    } catch (e) {
+      terakhir = e instanceof Error ? e : new Error("Langganan notifikasi gagal dibuat.");
+      const sisa = batas - Date.now();
+      if (!galatSementara(terakhir) || sisa <= 0) break;
+      await new Promise((r) => window.setTimeout(r, Math.min(JEDA_ULANG_MS, sisa)));
+    }
+  }
+  throw terakhir ?? new Error("Langganan notifikasi gagal dibuat.");
+}
+
+/** Ubah pesan galat peramban (bahasa Inggris) menjadi petunjuk berbahasa Indonesia. */
+function pesanRamah(pesan: string): string {
+  const p = pesan.toLowerCase();
+  if (p.includes("push service")) {
+    return "HP ini sedang tidak bisa menghubungi layanan notifikasi Google. Periksa sambungan internet (coba bergantian Wi-Fi dan data seluler), pastikan ada akun Google yang aktif di HP, matikan VPN dan DNS pribadi, lalu coba lagi beberapa menit kemudian.";
+  }
+  if (p.includes("permission") || p.includes("denied") || p.includes("not allowed")) {
+    return "Izin notifikasi belum diberikan untuk situs ini. Izinkan lewat pengaturan situs di peramban, lalu coba lagi.";
+  }
+  if (p.includes("vapid") || p.includes("invalidaccess") || p.includes("server key")) {
+    return "Kunci notifikasi situs tidak cocok dengan perangkat ini. Hubungi pengurus agar kunci notifikasi diperiksa.";
+  }
+  if (p.includes("waktu penyiapan")) {
+    return "Penyiapan notifikasi memakan waktu terlalu lama. Periksa sambungan internet, lalu coba lagi.";
+  }
+  if (p.includes("service worker") || p.includes("latar belakang")) {
+    return "Layanan notifikasi latar belakang belum siap. Tutup aplikasi lalu buka kembali, kemudian coba lagi.";
+  }
+  if (p.includes("fail") || p.includes("error")) {
+    return "Notifikasi belum bisa diaktifkan di HP ini. Periksa sambungan internet, lalu coba lagi.";
+  }
+  return pesan;
+}
+
+/** Kalimat lengkap yang ditampilkan ke pengguna saat langganan gagal. */
+function pesanGagal(
+  e: unknown,
+  penutup = "Kabar terbaru tetap muncul di ikon lonceng dan kartu di dalam situs.",
+): string {
+  const dasar =
+    e instanceof Error && e.message
+      ? pesanRamah(e.message)
+      : "Notifikasi push belum bisa diaktifkan.";
+  return `${dasar} ${penutup}`;
+}
+
+/** Apakah layanan masih mengenal pendaftaran perangkat ini. */
+async function masihTerdaftar(endpoint: string): Promise<boolean> {
+  try {
+    const jawab = await fetch("/api/push/periksa", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ endpoint }),
+    });
+    if (!jawab.ok) return true;
+    const data = await jawab.json().catch(() => ({}));
+    return Boolean(data.terdaftar);
+  } catch {
+    return true;
+  }
+}
+
 async function kirimLangganan(langganan: PushSubscription): Promise<number> {
   const data = langganan.toJSON();
   const jawab = await fetch("/api/push/daftar", {
@@ -110,17 +221,13 @@ export async function aktifkanPush(): Promise<HasilPush> {
   try {
     const kunci = await ambilKunci();
     let langganan = await daftar.pushManager.getSubscription();
-    if (!langganan) {
-      langganan = await Promise.race([
-        daftar.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: kunciDariBase64(kunci) as BufferSource,
-        }),
-        new Promise<never>((_, tolak) =>
-          window.setTimeout(() => tolak(new Error("Waktu penyiapan langganan habis.")), JEDA_MENIT),
-        ),
-      ]);
+    /* Langganan lama yang sudah dihapus dari panel admin dilepaskan lebih dulu,
+       supaya perangkat ini benar-benar membuat pendaftaran yang baru. */
+    if (langganan && !(await masihTerdaftar(langganan.endpoint))) {
+      await langganan.unsubscribe().catch(() => undefined);
+      langganan = null;
     }
+    if (!langganan) langganan = await langgananBaru(daftar, kunci);
     const jumlah = await kirimLangganan(langganan);
     simpanEndpoint(langganan.endpoint);
     return {
@@ -130,8 +237,7 @@ export async function aktifkanPush(): Promise<HasilPush> {
       jumlah,
     };
   } catch (e) {
-    const pesan = e instanceof Error ? e.message : "Notifikasi push belum bisa diaktifkan.";
-    return { ok: false, pesan: `${pesan} Kabar terbaru tetap muncul di ikon lonceng dan kartu di dalam situs.` };
+    return { ok: false, pesan: pesanGagal(e) };
   }
 }
 
@@ -149,16 +255,11 @@ async function langgananPerangkat(): Promise<PushSubscription> {
 
   const kunci = await ambilKunci();
   const ada = await daftar.pushManager.getSubscription();
-  if (ada) return ada;
-  return Promise.race([
-    daftar.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: kunciDariBase64(kunci) as BufferSource,
-    }),
-    new Promise<never>((_, tolak) =>
-      window.setTimeout(() => tolak(new Error("Waktu penyiapan langganan habis.")), JEDA_MENIT),
-    ),
-  ]);
+  if (ada) {
+    if (await masihTerdaftar(ada.endpoint)) return ada;
+    await ada.unsubscribe().catch(() => undefined);
+  }
+  return langgananBaru(daftar, kunci);
 }
 
 /* ------------------- notifikasi pribadi wali (terkunci di HP ini) ------------------- */
@@ -195,7 +296,10 @@ export async function daftarkanPushWali(): Promise<HasilPush> {
       jumlah: Number(jawab.perangkat ?? 0),
     };
   } catch (e) {
-    return { ok: false, pesan: e instanceof Error ? e.message : "Notifikasi belum bisa diaktifkan di HP ini." };
+    return {
+      ok: false,
+      pesan: pesanGagal(e, "Tagihan dan nilai tetap bisa dibuka di portal wali."),
+    };
   }
 }
 
@@ -290,15 +394,28 @@ export async function statusPush(): Promise<{ perangkat: number; terakhir: { jud
 /** Matikan langganan perangkat ini. */
 export async function matikanPush(): Promise<void> {
   const endpoint = endpointTersimpan();
-  if (!endpoint) return;
-  try {
-    await fetch("/api/push/hapus", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ endpoint }),
-    });
-  } catch {
-    /* diabaikan */
+  if (endpoint) {
+    try {
+      await fetch("/api/push/hapus", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ endpoint }),
+      });
+    } catch {
+      /* diabaikan */
+    }
+    simpanEndpoint(null);
   }
-  simpanEndpoint(null);
+
+  /* Langganan peramban juga dilepaskan. Tanpa ini, alamat lama dipakai lagi pada
+     pendaftaran berikutnya sehingga HP tidak pernah benar-benar mendaftar ulang. */
+  if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+    try {
+      const daftar = await navigator.serviceWorker.getRegistration("/");
+      const langganan = await daftar?.pushManager.getSubscription();
+      if (langganan) await langganan.unsubscribe();
+    } catch {
+      /* diabaikan */
+    }
+  }
 }
