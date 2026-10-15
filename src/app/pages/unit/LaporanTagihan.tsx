@@ -3,6 +3,7 @@ import { Icon } from "../../components/Icons";
 import { KepalaKartu } from "../../components/admin/KepalaKartu";
 import { angkaRingkas, rupiah, rupiahSingkat } from "../../lib/format";
 import { useIstilah } from "../../lib/istilah";
+import { useProfil } from "../../lib/profil";
 import { useSesiUnit } from "../../lib/sesiUnit";
 import {
   daftarLaporanTU,
@@ -70,8 +71,9 @@ const TEBAL_NAMA = "shadow-[6px_0_6px_-6px_rgba(6,36,25,0.22)]";
 
 export default function LaporanTagihan() {
   const istilah = useIstilah();
-  /* Nama unit dipakai di kepala berkas PDF dan Excel. */
+  /* Nama unit, logo, dan wilayah dipakai di kepala berkas PDF dan Excel. */
   const { sesi } = useSesiUnit();
+  const { identitas } = useProfil();
 
   /* Daftar laporan yang bisa dipilih. */
   const [pilihan, setPilihan] = useState<PilihanLaporan[]>([]);
@@ -163,6 +165,10 @@ export default function LaporanTagihan() {
         judul: dipilih?.nama ?? laporan.kategori.nama,
         unit: sesi?.unit?.nama ?? "PC PERSIS Cibatu",
         keterangan: kataKunci ? `disaring “${kataKunci}”` : undefined,
+        /* Kop berkas: logo dan nama badan dari identitas situs. */
+        logo: identitas.logo,
+        badan: "PC PERSIS Cibatu",
+        wilayah: identitas.wilayahLengkap,
       };
       if (jenis === "excel") await unduhLaporanExcel(laporan, opsi);
       else await unduhLaporanPdf(laporan, opsi);
