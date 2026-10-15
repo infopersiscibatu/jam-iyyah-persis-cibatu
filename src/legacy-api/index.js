@@ -24,6 +24,7 @@ import __m20 from "./ruang-unit-tata-usaha.js";
 import __m21 from "./ruang-wali.js";
 import __m22 from "./ruang-zis.js";
 import __m23 from "./ruang-donasi.js";
+import __m24 from "./ruang-perangkat.js";
 /**
  * Layanan PC PERSIS Cibatu: notifikasi push, database, dan penyimpanan berkas.
  *
@@ -58,6 +59,7 @@ const pasangRuteUnitTataUsaha = __m20;
 const pasangRuteWali = __m21;
 const pasangRuteZis = __m22;
 const pasangRuteDonasi = __m23;
+const pasangRutePerangkat = __m24;
 
 const PORT = Number(process.env.PORT || 8080);
 const PUSH_TOKEN = process.env.PUSH_TOKEN || "";
@@ -150,6 +152,18 @@ app.post("/api/push/hapus", async (req, res) => {
     if (!endpoint) return res.status(400).json({ pesan: "Endpoint tidak ada." });
     await tanya("delete from push_langganan where endpoint = $1", [endpoint]);
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ pesan: e.message });
+  }
+});
+
+/** Apakah sebuah alamat perangkat masih terdaftar. Dipakai HP untuk tahu kapan harus daftar ulang. */
+app.post("/api/push/periksa", async (req, res) => {
+  try {
+    const { endpoint } = req.body || {};
+    if (!endpoint) return res.status(400).json({ pesan: "Endpoint tidak ada." });
+    const { rows } = await tanya("select 1 from push_langganan where endpoint = $1", [endpoint]);
+    res.json({ ok: true, terdaftar: rows.length > 0 });
   } catch (e) {
     res.status(500).json({ pesan: e.message });
   }
@@ -309,6 +323,7 @@ app.use("/api/admin", (req, res, next) => {
 });
 
 pasangRuteAdmin(app, { tanya });
+pasangRutePerangkat(app, { tanya, push });
 pasangRuteTahunAjaran(app, { tanya });
 pasangRuteSpmb(app, { tanya });
 pasangRuteGaleri(app, { tanya });
