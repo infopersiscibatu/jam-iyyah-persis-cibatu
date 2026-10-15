@@ -477,7 +477,6 @@ export const daftarTunggakanTU = (cari = "") => {
   const akhir = q.toString();
   return mintaUnit<JawabanTunggakanTU>(`/api/unit/tata-usaha/tunggakan${akhir ? `?${akhir}` : ""}`);
 };
-
 /* ---------------------------------- laporan ---------------------------------- */
 
 /** Laporan yang bisa dipilih petugas: satu baris satu kategori tagihan sekolah ini. */
@@ -582,7 +581,8 @@ export const daftarLaporanTU = () => mintaUnit<JawabanPilihanLaporan>("/api/unit
 /** Tabel satu laporan: kolom bulan, total lunas, dan sisa tunggakan tiap peserta. */
 export const laporanKategoriTU = (
   id: string,
-  opsi: { tahun?: number; cari?: string; saring?: "aktif" | "semua" } = {},) => {
+  opsi: { tahun?: number; cari?: string; saring?: "aktif" | "semua" } = {},
+) => {
   const q = new URLSearchParams();
   if (opsi.tahun) q.set("tahun", String(opsi.tahun));
   if (opsi.saring) q.set("saring", opsi.saring);
