@@ -2,6 +2,23 @@
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (peristiwa) => peristiwa.waitUntil(self.clients.claim()));
 
+/* Penangan permintaan jaringan sederhana.
+   Chrome mensyaratkan service worker yang menangani permintaan sebelum
+   menawarkan "Pasang aplikasi" (bukan sekadar "Tambahkan ke layar utama").
+   Di sini permintaan hanya diteruskan ke jaringan tanpa disimpan, jadi
+   tampilan situs selalu terbaru dan tidak ada isi yang basi. */
+self.addEventListener("fetch", (peristiwa) => {
+  const minta = peristiwa.request;
+  if (minta.method !== "GET") return;
+  try {
+    if (new URL(minta.url).origin !== self.location.origin) return;
+  } catch {
+    return;
+  }
+  peristiwa.respondWith(fetch(minta));
+});
+
+
 self.addEventListener("push", (peristiwa) => {
   let data = {};
   try {
