@@ -1,3 +1,12 @@
-Package com.persiscibatu.id
-SHA-256 E3:FF:EA:3D:6B:BA:67:86:E8:79:7E:C5:A8:8E:C2:59:16:C9:3D:8F:44:A2:B8:B9:1E:62:95:44:22:06:47:10
-SHA-1   F5:D9:97:19:A9:7C:46:D0:D3:0A:C6:BA:71:C6:98:97:02:55:0F:3D
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.persiscibatu.id",
+      "sha256_cert_fingerprints": [
+        "E3:FF:EA:3D:6B:BA:67:86:E8:79:7E:C5:A8:8E:C2:59:16:C9:3D:8F:44:A2:B8:B9:1E:62:95:44:22:06:47:10"
+      ]
+    }
+  }
+]
