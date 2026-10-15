@@ -108,6 +108,7 @@ export default function HalamanUnitTataUsaha({
         {menu === "kategori" ? <KategoriTagihan /> : null}
         {menu === "metode" ? <MetodePembayaran /> : null}
         {menu === "tunggakan" ? <TunggakanLunas onBerubah={() => setVersi((v) => v + 1)} /> : null}
+        {menu === "laporan" ? <LaporanTagihan /> : null}
       </div>
     </main>
   );
