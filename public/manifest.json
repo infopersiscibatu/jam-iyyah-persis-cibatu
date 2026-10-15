@@ -37,28 +37,6 @@
       "type": "image/png",
       "purpose": "any"
     },
-    {
-      "src": "/ikon-maskable.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/tangkapan-lebar.png",
-      "sizes": "1280x720",
-      "type": "image/png",
-      "form_factor": "wide",
-      "label": "Beranda situs PERSIS Cibatu di layar lebar"
-    },
-    {
-      "src": "/tangkapan-tegak.png",
-      "sizes": "780x1688",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "Beranda situs PERSIS Cibatu di HP"
-    }
   ],
   "shortcuts": [
     {
