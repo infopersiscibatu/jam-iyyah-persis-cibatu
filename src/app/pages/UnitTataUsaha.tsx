@@ -10,6 +10,7 @@ import TabelTagihan from "./unit/TabelTagihan";
 import KategoriTagihan from "./unit/KategoriTagihan";
 import MetodePembayaran from "./unit/MetodePembayaran";
 import TunggakanLunas from "./unit/TunggakanLunas";
+import LaporanTagihan from "./unit/LaporanTagihan";
 
 /**
  * Halaman Admin Tata Usaha — halaman tersendiri untuk petugas tata usaha sekolah.
