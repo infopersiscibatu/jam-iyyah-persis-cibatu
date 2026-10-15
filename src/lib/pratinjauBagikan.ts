@@ -71,9 +71,95 @@ const escapeHtml = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", 
 
 export function halamanPratinjau(data: Pratinjau, url: string): string {
   const gambar = gambarPratinjau(data.gambar, new URL(url).origin);
-  const meta = (nama: string, nilai: string, atribut = "property") => `<meta ${atribut}="${nama}" content="${escapeHtml(nilai)}">`;
-  return `<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(data.judul)} — PC PERSIS Cibatu</title>
-${meta("description", data.ringkasan, "name")}${meta("og:title", data.judul)}${meta("og:description", data.ringkasan)}${meta("og:type", "article")}${meta("og:site_name", "PC PERSIS Cibatu")}${meta("og:url", url)}${meta("twitter:card", "summary_large_image", "name")}${meta("twitter:title", data.judul, "name")}${meta("twitter:description", data.ringkasan, "name")}
+  const meta = (nama: string, nilai: string, atribut = "property") =>
+    `<meta ${atribut}="${nama}" content="${escapeHtml(nilai)}">`;
+  const tujuanJson = JSON.stringify(data.hash).replace(/</g, "\\u003c");
+
+  return `<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(data.judul)} — PC PERSIS Cibatu</title>
+${meta("description", data.ringkasan, "name")}
+${meta("og:title", data.judul)}
+${meta("og:description", data.ringkasan)}
+${meta("og:type", "article")}
+${meta("og:site_name", "PC PERSIS Cibatu")}
+${meta("og:url", url)}
+${meta("twitter:card", "summary_large_image", "name")}
+${meta("twitter:title", data.judul, "name")}
+${meta("twitter:description", data.ringkasan, "name")}
 ${gambar ? meta("og:image", gambar) + meta("og:image:alt", data.judul) + meta("twitter:image", gambar, "name") : ""}
-<link rel="canonical" href="${escapeHtml(url)}"></head><body><h1>${escapeHtml(data.judul)}</h1>${gambar ? `<img src="${escapeHtml(gambar)}" alt="${escapeHtml(data.judul)}" width="600">` : ""}<p>${escapeHtml(data.ringkasan)}</p><a href="${escapeHtml(data.hash)}">Baca selengkapnya</a><script>window.location.replace(new URL(${JSON.stringify(data.hash).replace(/</g, "\\u003c")}, location.origin).href);</script></body></html>`;
+<link rel="canonical" href="${escapeHtml(url)}">
+
+<!-- 1. Pengalihan instan di awal sebelum layar sempat menggambar -->
+<meta http-equiv="refresh" content="0;url=${escapeHtml(data.hash)}">
+<script>
+  try {
+    window.location.replace(new URL(${tujuanJson}, location.origin).href);
+  } catch (e) {
+    window.location.href = ${tujuanJson};
+  }
+</script>
+
+<!-- 2. Gaya visual transisi hijau tema PERSIS (mencegah kedipan putih) -->
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background-color: #0e4b2b;
+    color: #ffffff;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .konten-perayap {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+  }
+  .kotak-muat {
+    text-align: center;
+  }
+  .logo-muat {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    margin-bottom: 12px;
+  }
+  .teks-muat {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    opacity: 0.9;
+  }
+</style>
+</head>
+<body>
+  <!-- Tampilan halus berlatar hijau jika peramban sempat menahan halaman -->
+  <div class="kotak-muat">
+    <img src="/logo-persis.png" alt="PERSIS Cibatu" class="logo-muat">
+    <div class="teks-muat">Membuka halaman...</div>
+  </div>
+
+  <!-- Teks untuk perayap Google/WhatsApp tetap ada di kode sumber -->
+  <div class="konten-perayap">
+    <h1>${escapeHtml(data.judul)}</h1>
+    ${gambar ? `<img src="${escapeHtml(gambar)}" alt="${escapeHtml(data.judul)}">` : ""}
+    <p>${escapeHtml(data.ringkasan)}</p>
+    <a href="${escapeHtml(data.hash)}">Baca selengkapnya</a>
+  </div>
+</body>
+</html>`;
 }
