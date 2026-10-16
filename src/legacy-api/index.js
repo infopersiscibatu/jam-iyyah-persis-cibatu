@@ -25,6 +25,7 @@ import __m21 from "./ruang-wali.js";
 import __m22 from "./ruang-zis.js";
 import __m23 from "./ruang-donasi.js";
 import __m24 from "./ruang-perangkat.js";
+import __m25 from "./ruang-kelas.js";
 /**
  * Layanan PC PERSIS Cibatu: notifikasi push, database, dan penyimpanan berkas.
  *
@@ -60,6 +61,7 @@ const pasangRuteWali = __m21;
 const pasangRuteZis = __m22;
 const pasangRuteDonasi = __m23;
 const pasangRutePerangkat = __m24;
+const pasangRuteUnitKelas = __m25;
 
 const PORT = Number(process.env.PORT || 8080);
 const PUSH_TOKEN = process.env.PUSH_TOKEN || "";
@@ -342,6 +344,8 @@ app.use("/api/unit", unit.penjagaUnit);
 pasangRuteUnitSpmb(app, { tanya });
 pasangRuteUnitSekolah(app, { tanya, push });
 pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBulanan });
+/* Kelas (rombel): dipakai panel Admin Sekolah dan rekap tagihan per kelas di Tata Usaha. */
+pasangRuteUnitKelas(app, { tanya });
 pasangRuteZis(app, { tanya });
 pasangRuteWali(app, { tanya, storage, push, tagihanBulanan });
 
