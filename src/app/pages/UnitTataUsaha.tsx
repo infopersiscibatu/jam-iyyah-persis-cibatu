@@ -11,6 +11,7 @@ import KategoriTagihan from "./unit/KategoriTagihan";
 import MetodePembayaran from "./unit/MetodePembayaran";
 import TunggakanLunas from "./unit/TunggakanLunas";
 import LaporanTagihan from "./unit/LaporanTagihan";
+import Kelas from "./unit/Kelas";
 
 /**
  * Halaman Admin Tata Usaha — halaman tersendiri untuk petugas tata usaha sekolah.
@@ -26,6 +27,8 @@ const menuUnit = (t: Istilah): MenuUnit[] => [
   { id: "metode", label: "Metode Pembayaran", ikon: "wallet" },
   /* Menggantikan tabel alumni: laporan tagihan per nama. */
   { id: "tunggakan", label: "Tunggakan & Lunas", ikon: "clipboard" },
+  /* Kelas & rekap tagihan per kelas: memudahkan penyaringan laporan tagihan. */
+  { id: "kelas", label: "Kelas & Tagihan", ikon: "school" },
   { id: "laporan", label: "Laporan", ikon: "eye" },
 ];
 
@@ -108,6 +111,7 @@ export default function HalamanUnitTataUsaha({
         {menu === "kategori" ? <KategoriTagihan /> : null}
         {menu === "metode" ? <MetodePembayaran /> : null}
         {menu === "tunggakan" ? <TunggakanLunas onBerubah={() => setVersi((v) => v + 1)} /> : null}
+        {menu === "kelas" ? <Kelas /> : null}
         {menu === "laporan" ? <LaporanTagihan /> : null}
       </div>
     </main>

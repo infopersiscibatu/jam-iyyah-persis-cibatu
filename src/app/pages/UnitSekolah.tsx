@@ -11,6 +11,7 @@ import TabelAlumni from "./unit/TabelAlumni";
 import Nilai from "./unit/Nilai";
 import Tahfidz from "./unit/Tahfidz";
 import MataPelajaran from "./unit/MataPelajaran";
+import Kelas from "./unit/Kelas";
 
 /**
  * Halaman Admin Sekolah — halaman tersendiri untuk petugas sekolah. Masuk memakai
@@ -30,6 +31,7 @@ const menuUnit = (t: Istilah): MenuUnit[] => {
   return [
     { id: "dashboard", label: "Dashboard", ikon: "home" },
     { id: "siswa", label: t.sebutan, ikon: "users" },
+    { id: "kelas", label: "Kelas", ikon: "school" },
     { id: "nilai", label: "Nilai", ikon: "award" },
     { id: "tahfidz", label: "Tahfidz", ikon: "book-open" },
     { id: "mapel", label: mapel, ikon: "clipboard" },
@@ -112,6 +114,7 @@ export default function HalamanUnitSekolah({
       <div className="mx-auto w-full max-w-[620px] px-4 pt-1 pb-4">
         {menu === "dashboard" ? <StatistikSekolah versi={versi} /> : null}
         {menu === "siswa" ? <TabelSiswa onBerubah={() => setVersi((v) => v + 1)} /> : null}
+        {menu === "kelas" ? <Kelas /> : null}
         {menu === "nilai" ? <Nilai onBukaMenu={pilihMenu} /> : null}
         {menu === "tahfidz" ? <Tahfidz /> : null}
         {menu === "mapel" ? <MataPelajaran /> : null}
