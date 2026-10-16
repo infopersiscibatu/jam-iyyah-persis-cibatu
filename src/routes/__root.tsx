@@ -73,12 +73,75 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   );
 }
 
+/**
+ * Layar muat awal: digambar oleh CSS sebaris ini, jadi muncul sebelum berkas gaya
+ * situs dan React siap. Bentuknya sengaja sama dengan layar "Memuat Data" situs
+ * (logo, tulisan, tiga titik emas) supaya layar pembuka sistem HP menyatu mulus
+ * ke layar memuat — tanpa kedipan hitam atau putih saat aplikasi dibuka.
+ */
+const GAYA_MUAT = `
+  html { color-scheme: light; }
+  html, body { margin: 0; }
+  html:not(.persis-muat-selesai) body { background: #0e4b2b; }
+  #persis-muat {
+    position: fixed; inset: 0; z-index: 90; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 14px; background: #0e4b2b;
+    color: #fff; text-align: center; padding: 0 32px;
+  }
+  #persis-muat img { width: 96px; height: 96px; border-radius: 9999px; object-fit: contain; }
+  #persis-muat p {
+    margin: 4px 0 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-size: 15px; font-weight: 800; line-height: 1.15; letter-spacing: 0.01em;
+  }
+  #persis-muat span { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  #persis-muat i {
+    display: block; width: 6px; height: 6px; border-radius: 9999px; background: #ecd27f;
+    animation: persis-muat-denyut 1.05s ease-in-out infinite;
+  }
+  #persis-muat i:nth-child(2) { animation-delay: 0.16s; }
+  #persis-muat i:nth-child(3) { animation-delay: 0.32s; }
+  @keyframes persis-muat-denyut {
+    0%, 100% { opacity: 0.35; transform: translateY(0); }
+    35% { opacity: 1; transform: translateY(-3px); }
+  }
+  html.persis-muat-selesai #persis-muat { display: none; }
+  @media (prefers-reduced-motion: reduce) { #persis-muat i { animation: none; opacity: 0.75; } }
+`;
+
+/**
+ * Layar muat dilepas begitu aplikasi benar-benar tampil (halaman situs sudah
+ * memiliki penandanya), dan paling lambat 12 detik atau 2,5 detik setelah seluruh
+ * berkas selesai dimuat — supaya tidak ada yang tertahan di layar muat.
+ */
+const SKRIP_MUAT = `(function () {
+  var akar = document.documentElement;
+  var mulai = Date.now();
+  var selesai = false;
+  function tutup() {
+    if (selesai) return;
+    selesai = true;
+    akar.classList.add("persis-muat-selesai");
+  }
+  var pengawas = window.setInterval(function () {
+    if (document.querySelector("[data-testid]") || Date.now() - mulai > 12000) {
+      window.clearInterval(pengawas);
+      window.setTimeout(tutup, 80);
+    }
+  }, 80);
+  window.addEventListener("load", function () {
+    window.setTimeout(function () { if (Date.now() - mulai > 1200) tutup(); }, 2500);
+  });
+})();`;
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1.0, viewport-fit=cover" },
       { name: "theme-color", content: "#0e4b2b" },
+      /* Halaman ini hanya bertema terang: tanpa ini peramban bisa menggambar
+         latar gelap (tampak hitam) selama situs dimuat di HP bertema gelap. */
+      { name: "color-scheme", content: "light" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-title", content: "PERSIS Cibatu" },
@@ -108,10 +171,21 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <style dangerouslySetInnerHTML={{ __html: GAYA_MUAT }} />
       </head>
       <body>
+        <div id="persis-muat" role="status" aria-live="polite" aria-label="Memuat data situs">
+          <img src="/logo-persis.png" alt="" width={96} height={96} draggable={false} />
+          <p>Memuat Data</p>
+          <span aria-hidden="true">
+            <i />
+            <i />
+            <i />
+          </span>
+        </div>
         {children}
         <Scripts />
+        <script dangerouslySetInnerHTML={{ __html: SKRIP_MUAT }} />
       </body>
     </html>
   );
