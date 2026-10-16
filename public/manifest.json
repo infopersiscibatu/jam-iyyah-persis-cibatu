@@ -23,42 +23,5 @@
       "type": "image/png",
       "purpose": "any"
     }
-  ],
-  "shortcuts": [
-    {
-      "name": "Panel Admin",
-      "short_name": "Admin",
-      "description": "Panel pengurus pusat PC PERSIS Cibatu.",
-      "url": "/#/admin",
-      "icons": [{ "src": "/ikon-192.png", "sizes": "192x192", "type": "image/png" }]
-    },
-    {
-      "name": "Admin SPMB",
-      "short_name": "SPMB",
-      "description": "Pendaftaran dan verifikasi peserta didik baru.",
-      "url": "/#/admin/spmb",
-      "icons": [{ "src": "/ikon-192.png", "sizes": "192x192", "type": "image/png" }]
-    },
-    {
-      "name": "Admin Sekolah",
-      "short_name": "Sekolah",
-      "description": "Data peserta didik, nilai, dan tahfidz.",
-      "url": "/#/admin/sekolah",
-      "icons": [{ "src": "/ikon-192.png", "sizes": "192x192", "type": "image/png" }]
-    },
-    {
-      "name": "Admin Tata Usaha",
-      "short_name": "Tata Usaha",
-      "description": "Tagihan, pembayaran, dan laporan keuangan sekolah.",
-      "url": "/#/admin/tata-usaha",
-      "icons": [{ "src": "/ikon-192.png", "sizes": "192x192", "type": "image/png" }]
-    },
-    {
-      "name": "Admin ZIS",
-      "short_name": "ZIS",
-      "description": "Zakat, infak, sedekah: program, donatur, dan penyaluran.",
-      "url": "/#/admin/zis",
-      "icons": [{ "src": "/ikon-192.png", "sizes": "192x192", "type": "image/png" }]
-    }
   ]
 }
