@@ -1,8 +1,22 @@
-[{
-      "relation": ["delegate_permission/common.handle_all_urls"],
-      "target": {
-        "namespace": "android_app",
-        "package_name": "com.persiscibatu.id",
-        "sha256_cert_fingerprints": ["2B:33:DD:96:BB:53:22:A7:27:A6:0F:61:B2:20:D3:B1:5A:7A:31:98:54:3F:08:F7:90:2D:60:F7:DF:57:56:48"]
-      }
-    }]
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.persiscibatu.id",
+      "sha256_cert_fingerprints": [
+        "2B:33:DD:96:BB:53:22:A7:27:A6:0F:61:B2:20:D3:B1:5A:7A:31:98:54:3F:08:F7:90:2D:60:F7:DF:57:56:48"
+      ]
+    }
+  },
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.persiscibatu.admin",
+      "sha256_cert_fingerprints": [
+        "2B:33:DD:96:BB:53:22:A7:27:A6:0F:61:B2:20:D3:B1:5A:7A:31:98:54:3F:08:F7:90:2D:60:F7:DF:57:56:48"
+      ]
+    }
+  }
+]
