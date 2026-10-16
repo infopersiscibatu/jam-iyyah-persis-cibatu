@@ -1,0 +1,63 @@
+{
+  "name": "PC PERSIS Cibatu — Panel Admin",
+  "short_name": "PERSIS Admin",
+  "description": "Aplikasi petugas PC PERSIS Cibatu: panel admin, SPMB, data sekolah, tata usaha, dan ZIS dalam satu aplikasi. Masuk memakai PIN yang diberikan pengurus.",
+  "id": "/#/admin",
+  "start_url": "/#/admin",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0e4b2b",
+  "theme_color": "#0e4b2b",
+  "lang": "id",
+  "icons": [
+    {
+      "src": "/ikon-admin-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/ikon-admin-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/ikon-admin-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Admin SPMB",
+      "short_name": "SPMB",
+      "description": "Pendaftaran dan verifikasi peserta didik baru.",
+      "url": "/#/admin/spmb",
+      "icons": [{ "src": "/ikon-admin-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Admin Sekolah",
+      "short_name": "Sekolah",
+      "description": "Data peserta didik, nilai, dan tahfidz.",
+      "url": "/#/admin/sekolah",
+      "icons": [{ "src": "/ikon-admin-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Admin Tata Usaha",
+      "short_name": "Tata Usaha",
+      "description": "Tagihan, pembayaran, dan laporan keuangan sekolah.",
+      "url": "/#/admin/tata-usaha",
+      "icons": [{ "src": "/ikon-admin-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Admin ZIS",
+      "short_name": "ZIS",
+      "description": "Zakat, infak, dan sedekah: program, donatur, dan penyaluran.",
+      "url": "/#/admin/zis",
+      "icons": [{ "src": "/ikon-admin-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
