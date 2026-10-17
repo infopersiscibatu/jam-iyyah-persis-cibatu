@@ -11,7 +11,7 @@
    2. Menerima push dan menampilkan notifikasi di layar HP (bagian ini tidak
       diubah dari sebelumnya). */
 
-const VERSI = "v3";
+const VERSI = "v4";
 const KERANGKA = `persis-kerangka-${VERSI}`; /* Kerangka halaman: diganti tiap versi. */
 const ASET = "persis-aset"; /* Berkas gaya, skrip, dan gambar: bertahan antarversi. */
 
@@ -101,9 +101,16 @@ self.addEventListener("fetch", (peristiwa) => {
   /* Data dari layanan situs selalu langsung dari jaringan: tidak boleh basi. */
   if (alamat.pathname.startsWith("/api/")) return;
 
-  /* Pembukaan halaman (termasuk aplikasi Android): kerangka dari HP dulu. */
+  /* Pembukaan halaman (termasuk aplikasi Android): kerangka dari HP dulu, tetapi
+     hanya untuk halaman utama. Alamat lain — terutama tautan bagikan berbentuk
+     namadomain/judul-konten — harus diambil dari jaringan supaya halaman pratinjau
+     dan pengalihannya sampai ke pembaca. */
   if (minta.mode === "navigate") {
-    peristiwa.respondWith(halaman(peristiwa, minta));
+    if (alamat.pathname === "/" || alamat.pathname === "/index.html") {
+      peristiwa.respondWith(halaman(peristiwa, minta));
+    } else {
+      peristiwa.respondWith(langsungAtauLuring(peristiwa, minta));
+    }
     return;
   }
 
@@ -118,6 +125,22 @@ self.addEventListener("fetch", (peristiwa) => {
     peristiwa.respondWith(berkasSegar(peristiwa, minta));
   }
 });
+
+/** Alamat lain (mis. tautan bagikan): ambil dari jaringan; bila jaringan mati,
+    tampilkan kerangka tersimpan atau halaman luring. */
+async function langsungAtauLuring(peristiwa, minta) {
+  try {
+    return await fetch(minta);
+  } catch (galat) {
+    const khazanah = await caches.open(KERANGKA);
+    const tersimpan = await khazanah.match("/");
+    if (tersimpan) return tersimpan;
+    return new Response(HALAMAN_LURING, {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+}
 
 /** Minta semua jendela yang sedang terbuka memuat ulang halamannya sekali. */
 async function mintaMuatUlang() {
