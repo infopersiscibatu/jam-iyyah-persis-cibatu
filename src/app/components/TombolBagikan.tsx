@@ -29,7 +29,14 @@ type Aksi = {
   onClick: () => void | Promise<void>;
 };
 
-export default function TombolBagikan({ konten }: { konten: KontenBagikan }) {
+export default function TombolBagikan({
+  konten,
+  atas,
+}: {
+  konten: KontenBagikan;
+  /** Tombol tambahan yang duduk tepat di atas tombol bagikan melayang (mis. tombol suka). */
+  atas?: React.ReactNode;
+}) {
   const [buka, setBuka] = useState(false);
   const [status, setStatus] = useState("");
   const [file, setFile] = useState<File | null>(null);
@@ -105,6 +112,7 @@ export default function TombolBagikan({ konten }: { konten: KontenBagikan }) {
 
   return (
     <div className="fixed bottom-[84px] right-3 z-[95] flex flex-col items-end gap-1.5">
+      {atas}
       {status ? <p role="status" className="rounded-full bg-foreground px-2.5 py-0.5 text-[11px] text-background shadow">{status}</p> : null}
       {buka ? aksi.map(({ label, logo, latar, ikon: Ikon, onClick }) => (
         <button key={label} type="button" onClick={onClick} aria-label={label} title={label}
