@@ -134,6 +134,40 @@ const SKRIP_MUAT = `(function () {
 })();`;
 
 /**
+ * Pengalih tautan bagikan.
+ *
+ * Tautan yang dibagikan berbentuk namadomain/judul-konten (tanpa tanda #), sedangkan
+ * seluruh halaman situs memakai alamat #/…. Bila peramban membuka alamat pendek itu
+ * pada kerangka aplikasi, isinya tidak ditemukan dan halaman tampak kosong. Skrip ini
+ * menanyakan jenis kontennya kepada layanan situs lalu langsung memindahkan pembaca ke
+ * alamat #/ yang benar — sebelum aplikasi sempat tampil.
+ */
+const SKRIP_TAUTAN = `(function () {
+  var jalur = "";
+  try {
+    jalur = decodeURIComponent(window.location.pathname || "").replace(/\\/+$/, "");
+  } catch (galat) { return; }
+  var hash = window.location.hash || "";
+  if (hash && hash !== "#" && hash !== "#/") return; /* sudah memakai alamat #/ */
+  var bagian = jalur.split("/").filter(Boolean);
+  if (bagian.length !== 1) return; /* hanya tautan pendek namadomain/slug */
+  if (/^(api|berkas|assets|favicon|manifest|sw)\\./i.test(bagian[0])) return;
+  if (/^(api|berkas|assets)$/i.test(bagian[0])) return;
+  var slug = bagian[0];
+  if (!/^[\\p{L}\\p{N}_-]{1,200}$/u.test(slug)) return;
+  fetch("/api/tautan?slug=" + encodeURIComponent(slug), { headers: { accept: "application/json" } })
+    .then(function (jawab) { return jawab.ok ? jawab.json() : null; })
+    .then(function (data) {
+      if (data && typeof data.tujuan === "string" && data.tujuan !== "/") {
+        window.location.replace(data.tujuan);
+        return;
+      }
+      window.location.replace("/");
+    })
+    .catch(function () { window.location.replace("/"); });
+})();`;
+
+/**
  * Pemulihan saat berkas halaman versi lama tidak ditemukan.
  *
  * Setiap kali situs diperbarui, nama berkas halamannya ikut berganti. Halaman yang
@@ -217,6 +251,7 @@ function RootShell({ children }: { children: ReactNode }) {
           </span>
         </div>
         {children}
+        <script dangerouslySetInnerHTML={{ __html: SKRIP_TAUTAN }} />
         <script dangerouslySetInnerHTML={{ __html: SKRIP_PEMULIHAN }} />
         <Scripts />
         <script dangerouslySetInnerHTML={{ __html: SKRIP_MUAT }} />
