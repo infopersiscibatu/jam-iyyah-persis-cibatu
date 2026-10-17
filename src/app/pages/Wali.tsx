@@ -251,13 +251,16 @@ export default function HalamanWali({ tab, onBayar }: { tab: WaliTab; onBayar: (
   }
 
   /* Profil memuat data yang sama dengan kolom tabel siswa/mahasiswa di Admin Sekolah:
-     nama, nama sekolah/kampus, jenjang, jurusan, nama orang tua, dan nomor WhatsApp.
+     nama, nama sekolah/kampus, jenjang, kelas, jurusan, nama orang tua, dan nomor WhatsApp.
+     Kelas diisi petugas sekolah lewat menu Kelas (rombel), sehingga barisnya muncul
+     tepat di bawah jenjang pendidikan.
      Baris jurusan hanya muncul untuk jenjang yang memang punya jurusan — RA dan MI
      umumnya tidak, sedangkan MA dan kampus punya program. */
   const adaJurusan = santri.adaJurusan || Boolean(santri.programNama || santri.program);
   const barisProfil: { label: string; nilai: string }[] = [
     { label: istilah.statUnit, nilai: santri.sekolah || "—" },
     { label: "Jenjang pendidikan", nilai: santri.jenjang || "—" },
+    { label: "Kelas", nilai: santri.kelas || "—" },
     ...(adaJurusan
       ? [{ label: istilah.jurusan, nilai: santri.programNama || santri.program || "—" }]
       : []),
