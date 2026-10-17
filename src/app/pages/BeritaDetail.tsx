@@ -120,8 +120,10 @@ export function HalamanBeritaDetail({
 
       <div className="mx-auto w-full max-w-[620px] pb-7">
         <section aria-label="Ringkasan berita" className="px-5 pt-5">
-          <TombolSuka jenis="berita" slug={berita.slug} judul={berita.title} />
-          <TombolBagikan konten={{ judul: berita.title, penulis: berita.author, ringkasan: berita.excerpt, gambar: berita.image, jalur: `/#/berita/${berita.slug}` }} />
+          <TombolBagikan
+            atas={<TombolSuka jenis="berita" slug={berita.slug} judul={berita.title} />}
+            konten={{ judul: berita.title, penulis: berita.author, ringkasan: berita.excerpt, gambar: berita.image, jalur: `/#/berita/${berita.slug}` }}
+          />
           <p className="flex items-center gap-2 text-[9.5px] font-bold tracking-[0.16em] text-persis-900 uppercase">
             <Icon name="sparkle" className="h-3.5 w-3.5 shrink-0 text-gold-500" />
             Ringkasan
