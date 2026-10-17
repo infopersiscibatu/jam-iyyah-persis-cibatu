@@ -11,7 +11,7 @@
    2. Menerima push dan menampilkan notifikasi di layar HP (bagian ini tidak
       diubah dari sebelumnya). */
 
-const VERSI = "v2";
+const VERSI = "v3";
 const KERANGKA = `persis-kerangka-${VERSI}`; /* Kerangka halaman: diganti tiap versi. */
 const ASET = "persis-aset"; /* Berkas gaya, skrip, dan gambar: bertahan antarversi. */
 
@@ -119,6 +119,18 @@ self.addEventListener("fetch", (peristiwa) => {
   }
 });
 
+/** Minta semua jendela yang sedang terbuka memuat ulang halamannya sekali. */
+async function mintaMuatUlang() {
+  const daftar = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+  for (const klien of daftar) {
+    try {
+      klien.postMessage({ tipe: "muat-ulang", alasan: "berkas-versi-baru" });
+    } catch (galat) {
+      /* jendela sudah ditutup: tidak perlu apa-apa */
+    }
+  }
+}
+
 async function halaman(peristiwa, minta) {
   const khazanah = await caches.open(KERANGKA);
   const tersimpan = await khazanah.match("/");
@@ -157,9 +169,12 @@ async function berkasKekal(peristiwa, minta) {
       return jawaban;
     }
     if (jawaban && jawaban.status === 404) {
-      /* Berkas lama sudah tidak ada di peladen: buang kerangka tersimpan agar
-         halaman diambil baru, jangan sampai aplikasi menunggu berkas hilang. */
+      /* Berkas versi lama sudah tidak ada di peladen — biasanya karena situs baru
+         saja diperbarui sementara halaman yang terbuka masih kerangka lama. Kerangka
+         tersimpan dibuang, lalu setiap jendela yang terbuka diminta memuat ulang
+         supaya memakai kerangka dan berkas versi baru. */
       await caches.delete(KERANGKA);
+      await mintaMuatUlang();
     }
     return jawaban;
   } catch (galat) {
