@@ -4,11 +4,13 @@ import { angkaRingkas } from "../lib/format";
 import { bacaJumlahSuka, sudahSuka, tandaiSuka, ubahSuka, type JenisSuka } from "../lib/suka";
 
 /**
- * Tombol suka untuk halaman detail berita dan artikel.
+ * Tombol suka melayang untuk halaman detail berita dan artikel.
  *
- * Ditempatkan tepat di atas tombol bagikan. Sekali ketuk menambah suka, ketuk lagi
- * membatalkannya — pilihan itu diingat perangkat ini supaya tombol tetap terlihat
- * sudah ditekan saat pembaca kembali ke halaman yang sama.
+ * Bentuknya tombol bulat, dipasang sebagai isi `atas` pada <TombolBagikan> sehingga
+ * duduk tepat di atas tombol bagikan yang melayang di kanan bawah. Sekali ketuk
+ * menambah suka, ketuk lagi membatalkannya — pilihan itu diingat perangkat ini supaya
+ * tombol tetap terlihat sudah ditekan saat pembaca kembali ke halaman yang sama.
+ * Jumlah penyuka tampil sebagai lencana kecil di sudut tombol.
  */
 export default function TombolSuka({
   jenis,
@@ -41,12 +43,6 @@ export default function TombolSuka({
     };
   }, [jenis, slug]);
 
-  useEffect(() => {
-    if (!pesan) return;
-    const t = setTimeout(() => setPesan(""), 2600);
-    return () => clearTimeout(t);
-  }, [pesan]);
-
   const ketuk = useCallback(async () => {
     if (sibuk) return;
     const tujuan = !suka;
@@ -55,7 +51,7 @@ export default function TombolSuka({
     setJumlah((n) => Math.max(0, n + (tujuan ? 1 : -1)));
     if (tujuan) {
       setDenyut(true);
-      setTimeout(() => setDenyut(false), 220);
+      setTimeout(() => setDenyut(false), 240);
     }
     try {
       const baru = await ubahSuka(jenis, slug, tujuan);
@@ -73,48 +69,39 @@ export default function TombolSuka({
   }, [jenis, slug, suka, sibuk]);
 
   return (
-    <div data-testid={`suka-${jenis}`} className="mb-3 flex flex-wrap items-center gap-2">
+    <div data-testid={`suka-${jenis}`} className="relative">
       <button
         type="button"
         data-testid="tombol-suka"
         aria-pressed={suka}
-        aria-label={
-          suka
-            ? `Batalkan suka pada ${judul}`
-            : `Sukai ${judul}${jumlah > 0 ? `, sudah disukai ${jumlah} orang` : ""}`
-        }
+        aria-label={suka ? `Batalkan suka pada ${judul}` : `Sukai ${judul}`}
+        title={suka ? "Batalkan suka" : "Sukai"}
         disabled={sibuk}
         onClick={() => void ketuk()}
-        className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-[11.5px] font-semibold transition active:scale-[0.98] disabled:opacity-70 ${
+        className={`flex h-11 w-11 items-center justify-center rounded-full shadow-lg transition active:scale-95 disabled:opacity-70 ${
           suka
-            ? "border-persis-900 bg-persis-900 text-white"
-            : "border-persis-900/25 bg-white text-persis-900"
+            ? "bg-persis-900 text-white"
+            : "border border-border bg-card text-persis-900"
         }`}
       >
         <Heart
           aria-hidden="true"
-          className={`h-[15px] w-[15px] transition-transform duration-200 ${suka ? "fill-current text-gold-300" : ""} ${
+          className={`h-5 w-5 transition-transform duration-200 ${suka ? "fill-current text-gold-300" : ""} ${
             denyut ? "scale-125" : "scale-100"
           }`}
         />
-        {suka ? "Disukai" : "Suka"}
-        {jumlah > 0 ? (
-          <span
-            data-testid="jumlah-suka"
-            className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-              suka ? "bg-white/15 text-gold-300" : "bg-persis-900/[0.07] text-persis-900"
-            }`}
-          >
-            {angkaRingkas(jumlah)}
-          </span>
-        ) : null}
       </button>
-      <span
-        aria-live="polite"
-        data-testid="pesan-suka"
-        className={`text-[10px] font-medium text-ink-500 transition-opacity ${pesan ? "opacity-100" : "opacity-0"}`}
-      >
-        {pesan || "\u00a0"}
+      {jumlah > 0 ? (
+        <span
+          data-testid="jumlah-suka"
+          aria-hidden="true"
+          className="pointer-events-none absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-gold-500 px-1 text-[9.5px] font-extrabold text-persis-950 shadow-sm"
+        >
+          {angkaRingkas(jumlah)}
+        </span>
+      ) : null}
+      <span role="status" aria-live="polite" data-testid="pesan-suka" className="sr-only">
+        {pesan}
       </span>
     </div>
   );
