@@ -133,6 +133,75 @@ const __ekspor = function pasangRuteBerita(app, { tanya }) {
     }
   });
 
+  /* -------------------------------- suka -------------------------------- */
+
+  /* Tombol suka pada halaman detail berita dan artikel.
+     Angka disimpan pada tabel `pengaturan` yang sudah ada, satu kunci per konten
+     (`suka-berita-<slug>`, `suka-artikel-<slug>`) — tanpa tabel atau kolom baru.
+     Kenaikan dikerjakan dengan satu perintah supaya dua pembaca yang menekan hampir
+     bersamaan tetap terhitung benar, dan angkanya tidak pernah kurang dari nol. */
+  const KUNCI_SUKA = (jenis, slug) => `suka-${jenis}-${slug}`;
+  const TABEL_SUKA = { berita: "berita", artikel: "artikel" };
+
+  const slugSah = (slug) =>
+    typeof slug === "string" && slug.length > 0 && slug.length <= 200 && /^[\p{L}\p{N}_-]+$/u.test(slug);
+
+  const jumlahSuka = async (jenis, slug) => {
+    const { rows } = await tanya("select nilai from pengaturan where kunci = $1", [KUNCI_SUKA(jenis, slug)]);
+    const nilai = rows[0] ? rows[0].nilai : null;
+    const angka = nilai && typeof nilai === "object" ? Number(nilai.jumlah ?? 0) : 0;
+    return Number.isFinite(angka) && angka > 0 ? Math.floor(angka) : 0;
+  };
+
+  for (const jenis of Object.keys(TABEL_SUKA)) {
+    const tabel = TABEL_SUKA[jenis];
+
+    /* Berapa kali konten ini disukai. */
+    app.get(`/api/${jenis}/:slug/suka`, async (req, res) => {
+      try {
+        const slug = String(req.params.slug || "");
+        if (!slugSah(slug)) return res.status(400).json({ pesan: "Alamat konten tidak sah." });
+        res.set("cache-control", "no-store");
+        res.json({ ok: true, jumlah: await jumlahSuka(jenis, slug) });
+      } catch (e) {
+        res.status(500).json({ pesan: e.message });
+      }
+    });
+
+    /* Tambah satu suka (arah 1) atau batalkan (arah -1). */
+    app.post(`/api/${jenis}/:slug/suka`, async (req, res) => {
+      try {
+        const slug = String(req.params.slug || "");
+        if (!slugSah(slug)) return res.status(400).json({ pesan: "Alamat konten tidak sah." });
+
+        const ada = await tanya(`select 1 from ${tabel} where slug = $1`, [slug]);
+        if (ada.rowCount === 0) return res.status(404).json({ pesan: "Konten tidak ditemukan." });
+
+        const arah = req.body?.arah === -1 || req.body?.arah === "batal" ? -1 : 1;
+        if (arah === -1) {
+          /* Belum pernah disukai: tidak perlu membuat baris baru. */
+          const sekarang = await jumlahSuka(jenis, slug);
+          if (sekarang === 0) return res.json({ ok: true, jumlah: 0 });
+        }
+
+        const { rows } = await tanya(
+          `insert into pengaturan (kunci, nilai, kelompok, keterangan)
+           values ($1, jsonb_build_object('jumlah', 1), 'suka', $2)
+           on conflict (kunci) do update
+             set nilai = jsonb_set(pengaturan.nilai, '{jumlah}',
+                         to_jsonb(greatest(0, coalesce((pengaturan.nilai->>'jumlah')::int, 0) + $3))),
+                 diperbarui = now()
+           returning coalesce((nilai->>'jumlah')::int, 0) as jumlah`,
+          [KUNCI_SUKA(jenis, slug), `Jumlah suka ${jenis} ${slug}`, arah],
+        );
+        const jumlah = Math.max(0, Number(rows[0]?.jumlah ?? 0) || 0);
+        res.json({ ok: true, jumlah });
+      } catch (e) {
+        res.status(500).json({ pesan: e.message });
+      }
+    });
+  }
+
   /* --------------------------- teks halaman --------------------------- */
 
   app.put("/api/admin/berita-halaman", async (req, res) => {
