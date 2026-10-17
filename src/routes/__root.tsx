@@ -133,6 +133,39 @@ const SKRIP_MUAT = `(function () {
   });
 })();`;
 
+/**
+ * Pemulihan saat berkas halaman versi lama tidak ditemukan.
+ *
+ * Setiap kali situs diperbarui, nama berkas halamannya ikut berganti. Halaman yang
+ * masih terbuka dari versi sebelumnya bisa meminta berkas lama yang sudah dihapus
+ * (jawabannya 404) — misalnya saat membuka borang berita yang memuat editor teks
+ * kaya. Skrip ini mendengarkan kegagalan seperti itu lalu memuat ulang halaman
+ * sekali, sehingga versi baru terpakai dan borangnya terbuka normal kembali.
+ */
+const SKRIP_PEMULIHAN = `(function () {
+  var kunci = "persis-muat-ulang-berkas";
+  function muatUlang() {
+    try {
+      var terakhir = Number(window.sessionStorage.getItem(kunci) || 0);
+      /* Jangan sampai berulang-ulang: paling sering sekali per 10 menit, sehingga
+         gangguan sesaat pulih sendiri tanpa membuat halaman memuat ulang terus. */
+      if (Date.now() - terakhir < 600000) return;
+      window.sessionStorage.setItem(kunci, String(Date.now()));
+    } catch (galat) { /* penyimpanan tidak tersedia */ }
+    window.location.reload();
+  }
+  window.addEventListener("vite:preloadError", muatUlang);
+  window.addEventListener("error", function (peristiwa) {
+    var pesan = peristiwa && peristiwa.message ? String(peristiwa.message) : "";
+    if (/dynamically imported module|Importing a module script failed|Loading chunk/i.test(pesan)) muatUlang();
+  });
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.addEventListener("message", function (peristiwa) {
+      if (peristiwa.data && peristiwa.data.tipe === "muat-ulang") muatUlang();
+    });
+  }
+})();`;
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
@@ -184,6 +217,7 @@ function RootShell({ children }: { children: ReactNode }) {
           </span>
         </div>
         {children}
+        <script dangerouslySetInnerHTML={{ __html: SKRIP_PEMULIHAN }} />
         <Scripts />
         <script dangerouslySetInnerHTML={{ __html: SKRIP_MUAT }} />
       </body>
