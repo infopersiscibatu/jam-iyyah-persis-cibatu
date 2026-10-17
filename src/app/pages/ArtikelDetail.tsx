@@ -1,6 +1,7 @@
 import { BlokIsi } from "../components/IsiKaya";
 import { Fragment, useEffect } from "react";
 import TombolBagikan from "../components/TombolBagikan";
+import TombolSuka from "../components/TombolSuka";
 import KartuBerita, { KartuBacaJuga, type ItemKartu } from "../components/KartuBerita";
 import SlotIklan from "../components/SlotIklan";
 import JudulSeksi from "../components/JudulSeksi";
@@ -121,6 +122,7 @@ export function HalamanArtikelDetail({
 
       <div className="mx-auto w-full max-w-[620px] pb-7">
         <section aria-label="Ringkasan artikel" className="px-5 pt-5">
+          <TombolSuka jenis="artikel" slug={artikel.slug} judul={artikel.judul} />
           <TombolBagikan konten={{ judul: artikel.judul, penulis: artikel.penulis, ringkasan: artikel.ringkasan, gambar: artikel.gambar, jalur: `/#/artikel/${artikel.slug}` }} />
           <p className="flex items-center gap-2 text-[9.5px] font-bold tracking-[0.16em] text-persis-900 uppercase">
             <Icon name="sparkle" className="h-3.5 w-3.5 shrink-0 text-gold-500" />
