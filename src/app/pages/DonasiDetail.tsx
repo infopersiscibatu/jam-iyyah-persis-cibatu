@@ -6,14 +6,7 @@ import JudulSeksi from "../components/JudulSeksi";
 import { Icon } from "../components/Icons";
 import { KartuProgram } from "./Donasi";
 import { identitas } from "../data/content";
-import {
-  cariProgram,
-  donaturProgram,
-  progresProgram,
-  riwayatProgram,
-  sisaHari,
-  tabDonasi,
-} from "../data/donasi";
+import { cariProgram, progresProgram, sisaHari, tabDonasi } from "../data/donasi";
 import { kirimDonasiKeServer, menungguProgram, simpanMenunggu, type DonasiMenunggu } from "../lib/donasiMenunggu";
 import { useKatalogDonasi, type ProgramLengkap } from "../lib/programDonasi";
 import { hariKe, rupiah, tanggalKotak, tanggalPanjang, tanggalPendek, tanggalRelatif } from "../lib/format";
@@ -31,13 +24,27 @@ export function HalamanDonasiDetail({
   onKembali: () => void;
 }) {
   /* Program, donatur, dan riwayat dibaca dari server (diurus di halaman Admin ZIS). */
-  const { daftar, rekening, metodeProgram } = useKatalogDonasi();
+  const { daftar, rekening, metodeProgram, siap } = useKatalogDonasi();
   const program: ProgramLengkap | undefined = daftar.find((p) => p.slug === slug) ?? cariProgram(slug);
   const [tab, setTab] = useState("keterangan");
   const [formBuka, setFormBuka] = useState(false);
   const [galat, setGalat] = useState("");
   const [baru, setBaru] = useState<IsianDonasi | null>(null);
   const [menunggu, setMenunggu] = useState<DonasiMenunggu[]>(() => (program ? menungguProgram(program.slug) : []));
+
+  /* Katalog masih diambil dari server: jangan tampilkan "tidak ditemukan" lebih dahulu. */
+  if (!program && !siap) {
+    return (
+      <main data-testid="donasi-detail" className="mx-auto w-full max-w-[620px] px-5 pt-8 pb-8">
+        <div className="rounded-2xl border border-black/[0.08] bg-white p-5 text-center">
+          <h1 className="font-header text-[15px] font-bold text-ink-900">Memuat program donasi…</h1>
+          <p className="mt-1.5 text-justify text-[12px] leading-relaxed text-ink-600">
+            Program, riwayat penyaluran, dan donatur dibaca langsung dari database. Mohon tunggu sebentar.
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   if (!program) {
     return (
@@ -63,14 +70,12 @@ export function HalamanDonasiDetail({
   const { terkumpul, donatur, persen } = progresProgram(program);
   const hari = sisaHari(program);
   const sisa = Math.max(0, program.target - terkumpul);
-  const donaturTercatat =
-    program.donaturTampil && program.donaturTampil.length > 0
-      ? program.donaturTampil.slice(0, 8)
-      : donaturProgram(program.slug).slice(0, 8);
+  /* Donatur dan riwayat hanya diambil dari database. Bila petugas ZIS belum
+     mencatat, bagian itu kosong — tidak ada lagi contoh yang dibuat-buat. */
+  const donaturTercatat = (program.donaturTampil ?? []).slice(0, 8);
   const totalRincian = program.rincian.reduce((t, r) => t + r.jumlah, 0);
   const lainnya = daftar.filter((p) => p.slug !== program.slug).slice(0, 3);
-  const riwayat =
-    program.riwayat && program.riwayat.length > 0 ? program.riwayat : riwayatProgram(program);
+  const riwayat = program.riwayat ?? [];
   const totalMenunggu = menunggu.reduce((t, d) => t + d.nominal, 0);
   /* Metode pembayaran khusus program ini; diatur petugas di halaman Admin ZIS. */
   const metodeBerlaku = metodeProgram(program);
@@ -279,7 +284,9 @@ export function HalamanDonasiDetail({
                     Donatur Terbaru
                   </span>
                   <span className="shrink-0 text-[10.5px] tabular-nums text-persis-900">
-                    {donaturTercatat.length} dari {donatur} donatur
+                    {donaturTercatat.length > 0
+                      ? `${donaturTercatat.length} dari ${donatur} donatur`
+                      : `${donatur} donatur`}
                   </span>
                 </p>
 
@@ -300,21 +307,31 @@ export function HalamanDonasiDetail({
                   </div>
                 ) : null}
 
-                <ul className="mt-2 divide-y divide-black/[0.06]">
-                  {donaturTercatat.map((d) => (
-                    <li key={d.id} className="flex items-start justify-between gap-3 py-2.5">
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[12px] font-semibold text-ink-900">{d.nama}</span>
-                        <span className="mt-0.5 block text-[10.5px] text-persis-900">
-                          {d.metode} · {tanggalRelatif(d.waktu)}
+                {donaturTercatat.length > 0 ? (
+                  <ul className="mt-2 divide-y divide-black/[0.06]">
+                    {donaturTercatat.map((d) => (
+                      <li key={d.id} className="flex items-start justify-between gap-3 py-2.5">
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[12px] font-semibold text-ink-900">{d.nama}</span>
+                          <span className="mt-0.5 block text-[10.5px] text-persis-900">
+                            {d.metode} · {tanggalRelatif(d.waktu)}
+                          </span>
                         </span>
-                      </span>
-                      <span className="font-header shrink-0 text-[12px] font-bold tabular-nums text-ink-900">
-                        {rupiah(d.jumlah)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                        <span className="font-header shrink-0 text-[12px] font-bold tabular-nums text-ink-900">
+                          {rupiah(d.jumlah)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p
+                    data-testid="donasi-donatur-kosong"
+                    className="mt-3 border-t border-black/[0.06] pt-3 text-justify text-[11px] leading-relaxed text-ink-600"
+                  >
+                    Belum ada nama donatur yang ditampilkan untuk program ini. Nama donatur muncul di sini setelah
+                    setorannya diverifikasi petugas ZIS dan yang bersangkutan mengizinkan namanya ditampilkan.
+                  </p>
+                )}
                 <p className="mt-3 text-justify text-[10.5px] leading-relaxed text-ink-600">
                   Nama donatur ditampilkan dengan izin yang bersangkutan. Donatur yang memilih tidak disebut namanya
                   dicatat sebagai Hamba Allah pada daftar ini.
@@ -329,56 +346,67 @@ export function HalamanDonasiDetail({
                     <Icon name="sparkle" className="h-[15px] w-[15px] text-gold-500" />
                     Riwayat Program
                   </span>
-                  <span className="shrink-0 text-[10.5px] text-persis-900">{riwayat.length} catatan</span>
+                  <span className="shrink-0 text-[10.5px] text-persis-900">
+                    {riwayat.length > 0 ? `${riwayat.length} catatan` : "Belum ada"}
+                  </span>
                 </p>
-                <ul className="mt-2.5 space-y-3">
-                  {riwayat.map((c) => {
-                    const kotak = tanggalKotak(c.tanggal);
-                    return (
-                      <li key={c.id} className="flex gap-3">
-                        <span className="flex w-[42px] shrink-0 flex-col items-center rounded-xl bg-cream-50 py-1.5">
-                          <span className="font-header text-[13px] leading-none font-extrabold text-ink-900">
-                            {kotak.day}
-                          </span>
-                          <span className="mt-0.5 text-[9.5px] font-semibold tracking-[0.06em] text-persis-900 uppercase">
-                            {kotak.month}
-                          </span>
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex items-start justify-between gap-3">
-                            <span className="text-[12px] leading-snug font-semibold text-ink-900">{c.judul}</span>
-                            <span
-                              className={`shrink-0 rounded-full px-2 py-[3px] text-[9px] font-bold tracking-[0.08em] uppercase ${
-                                c.jenis === "Penyaluran" ? "bg-mint-deep text-persis-800" : "bg-cream-100 text-persis-900"
-                              }`}
-                            >
-                              {c.jenis}
+                {riwayat.length > 0 ? (
+                  <ul className="mt-2.5 space-y-3">
+                    {riwayat.map((c) => {
+                      const kotak = tanggalKotak(c.tanggal);
+                      return (
+                        <li key={c.id} className="flex gap-3">
+                          <span className="flex w-[42px] shrink-0 flex-col items-center rounded-xl bg-cream-50 py-1.5">
+                            <span className="font-header text-[13px] leading-none font-extrabold text-ink-900">
+                              {kotak.day}
+                            </span>
+                            <span className="mt-0.5 text-[9.5px] font-semibold tracking-[0.06em] text-persis-900 uppercase">
+                              {kotak.month}
                             </span>
                           </span>
-                          <span className="mt-1 block text-justify text-[11px] leading-relaxed text-ink-600">
-                            {c.keterangan}
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-start justify-between gap-3">
+                              <span className="text-[12px] leading-snug font-semibold text-ink-900">{c.judul}</span>
+                              <span
+                                className={`shrink-0 rounded-full px-2 py-[3px] text-[9px] font-bold tracking-[0.08em] uppercase ${
+                                  c.jenis === "Penyaluran" ? "bg-mint-deep text-persis-800" : "bg-cream-100 text-persis-900"
+                                }`}
+                              >
+                                {c.jenis}
+                              </span>
+                            </span>
+                            <span className="mt-1 block text-justify text-[11px] leading-relaxed text-ink-600">
+                              {c.keterangan}
+                            </span>
+                            {c.nominal > 0 ? (
+                              <span
+                                data-testid="riwayat-nominal"
+                                className="font-header mt-1 block text-[11.5px] font-bold tabular-nums text-ink-900"
+                              >
+                                {rupiah(c.nominal)}
+                              </span>
+                            ) : null}
                           </span>
-                          {c.nominal && c.nominal > 0 ? (
-                            <span
-                              data-testid="riwayat-nominal"
-                              className="font-header mt-1 block text-[11.5px] font-bold tabular-nums text-ink-900"
-                            >
-                              {rupiah(c.nominal)}
-                            </span>
-                          ) : c.porsi ? (
-                            <span className="font-header mt-1 block text-[11.5px] font-bold tabular-nums text-ink-900">
-                              {rupiah(Math.round(terkumpul * c.porsi))}
-                            </span>
-                          ) : null}
-                        </span>
-                      </li>
-                    );
-                  })}
-                </ul>
-                <p className="mt-3.5 text-justify text-[10.5px] leading-relaxed text-ink-600">
-                  Catatan terakhir diperbarui {tanggalPendek(riwayat[0]?.tanggal ?? program.batas)}. Riwayat ditambah
-                  setiap ada pencairan, laporan penggunaan dana, atau pemeriksaan bendahara.
-                </p>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p
+                    data-testid="donasi-riwayat-kosong"
+                    className="mt-3 border-t border-black/[0.06] pt-3 text-justify text-[11px] leading-relaxed text-ink-600"
+                  >
+                    Belum ada riwayat penyaluran untuk program ini. Setiap pencairan dana dan laporan penggunaannya
+                    dicatat petugas ZIS di panel admin — lengkap dengan tanggal, keterangan, dan nominalnya — lalu
+                    langsung tampil di sini.
+                  </p>
+                )}
+                {riwayat.length > 0 ? (
+                  <p className="mt-3.5 text-justify text-[10.5px] leading-relaxed text-ink-600">
+                    Catatan terakhir diperbarui {tanggalPendek(riwayat[0]?.tanggal ?? program.batas)}. Riwayat ditambah
+                    setiap ada pencairan, laporan penggunaan dana, atau pemeriksaan bendahara.
+                  </p>
+                ) : null}
               </>
             ) : null}
           </div>
