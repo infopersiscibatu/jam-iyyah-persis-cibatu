@@ -68,13 +68,37 @@ export function HalamanDonasiDetail({
 
   const { terkumpul, donatur, persen } = progresProgram(program);
   const hari = sisaHari(program);
-  const sisa = Math.max(0, program.target - terkumpul);
   /* Donatur dan riwayat hanya diambil dari database. Bila petugas ZIS belum
      mencatat, bagian itu kosong — tidak ada lagi contoh yang dibuat-buat. */
   const donaturTercatat = (program.donaturTampil ?? []).slice(0, 8);
   const totalRincian = program.rincian.reduce((t, r) => t + r.jumlah, 0);
   const lainnya = daftar.filter((p) => p.slug !== program.slug).slice(0, 3);
   const riwayat = program.riwayat ?? [];
+
+  /*
+   * Tiga angka dana program, menggantikan "sisa kebutuhan":
+   *  - Donasi Masuk   : seluruh donasi yang sudah masuk ke program ini,
+   *  - Total Penyaluran: jumlah laporan penyaluran yang dicatat petugas ZIS,
+   *  - Sisa Dana      : selisih keduanya; bila dana sudah habis dipakai, 0.
+   * Angka utama dikirim server lewat /api/program-donasi; bila belum ada,
+   * halaman menghitungnya dari data yang sama supaya tetap benar.
+   */
+  const donasiMasuk = Number(program.masuk ?? terkumpul);
+  const totalPenyaluran = Number(
+    program.penyaluran ??
+      riwayat
+        .filter((r) => r.jenis === "Penyaluran")
+        .reduce((t, r) => t + Math.max(0, Number(r.nominal ?? 0)), 0),
+  );
+  const sisaDana = Math.max(0, Number(program.sisa ?? donasiMasuk - totalPenyaluran));
+  const keteranganSisa =
+    donasiMasuk <= 0
+      ? "Belum ada donasi masuk untuk program ini."
+      : totalPenyaluran <= 0
+        ? "Seluruh donasi yang masuk belum disalurkan, sehingga dananya masih tersimpan utuh."
+        : sisaDana <= 0
+          ? "Dana program ini sudah habis digunakan sesuai laporan penyaluran."
+          : "Sisa dana masih tersimpan. Bila kemudian digunakan untuk keperluan lain, penggunaannya dicatat pada laporan penyaluran program ini.";
   /* Metode pembayaran khusus program ini; diatur petugas di halaman Admin ZIS. */
   const metodeBerlaku = metodeProgram(program);
   const panduanMetode = (nama: string) =>
@@ -163,14 +187,45 @@ export function HalamanDonasiDetail({
             </span>
             <dl className="mt-3.5 divide-y divide-black/[0.06] border-t border-black/[0.06]">
               <div className="flex items-center justify-between gap-3 py-2.5">
-                <dt className="text-[10.5px] font-bold tracking-[0.12em] text-persis-900 uppercase">Sisa kebutuhan</dt>
-                <dd className="font-header text-[12.5px] font-bold tabular-nums text-ink-900">{rupiah(sisa)}</dd>
+                <dt className="text-[10.5px] font-bold tracking-[0.12em] text-persis-900 uppercase">Donasi Masuk</dt>
+                <dd
+                  data-testid="donasi-masuk"
+                  className="font-header text-[12.5px] font-bold tabular-nums text-ink-900"
+                >
+                  {rupiah(donasiMasuk)}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 py-2.5">
+                <dt className="text-[10.5px] font-bold tracking-[0.12em] text-persis-900 uppercase">
+                  Total Penyaluran
+                </dt>
+                <dd
+                  data-testid="donasi-penyaluran"
+                  className="font-header text-[12.5px] font-bold tabular-nums text-ink-900"
+                >
+                  {rupiah(totalPenyaluran)}
+                </dd>
+              </div>
+              <div className="flex items-center justify-between gap-3 py-2.5">
+                <dt className="text-[10.5px] font-bold tracking-[0.12em] text-persis-900 uppercase">Sisa Dana</dt>
+                <dd
+                  data-testid="donasi-sisa"
+                  className="font-header text-[12.5px] font-bold tabular-nums text-persis-900"
+                >
+                  {rupiah(sisaDana)}
+                </dd>
               </div>
               <div className="flex items-center justify-between gap-3 py-2.5">
                 <dt className="text-[10.5px] font-bold tracking-[0.12em] text-persis-900 uppercase">Batas waktu</dt>
                 <dd className="text-[12px] font-medium text-ink-900">{tanggalPanjang(program.batas)}</dd>
               </div>
             </dl>
+            <p
+              data-testid="donasi-keterangan-sisa"
+              className="mt-2 text-justify text-[10.5px] leading-relaxed text-ink-600"
+            >
+              {keteranganSisa}
+            </p>
             <button
               type="button"
               onClick={() => setFormBuka(true)}
@@ -256,8 +311,9 @@ export function HalamanDonasiDetail({
                   ))}
                 </ul>
                 <p className="mt-3 text-justify text-[10.5px] leading-relaxed text-ink-600">
-                  Rincian di atas adalah rencana kebutuhan. Bila dana terkumpul melebihi target, kelebihannya dialihkan ke
-                  program serupa dengan persetujuan pengurus dan dilaporkan kepada donatur.
+                  Rincian di atas adalah rencana penggunaan dana. Dana yang sudah masuk dan belum disalurkan tercatat pada
+                  Sisa Dana; bila dana tersebut kemudian digunakan untuk keperluan lain, penggunaannya dicatat pada
+                  laporan penyaluran program ini.
                 </p>
               </>
             ) : null}
