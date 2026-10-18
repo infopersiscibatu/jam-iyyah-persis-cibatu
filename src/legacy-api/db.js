@@ -72,6 +72,16 @@ async function admin() {
   return klien;
 }
 
+/**
+ * Jalankan satu pernyataan SQL.
+ *
+ * PENTING: `jalankan_sql` di database membungkus kueri baca dalam CTE satu lapis
+ * (`with t as (<kueri>) select ... from t`) supaya hasilnya bisa dikirim balik.
+ * Karena itu jangan mengirim kueri yang diawali `with` dan berisi pengubah data
+ * (insert/update/delete): PostgreSQL menolaknya dengan pesan "WITH clause
+ * containing a data-modifying statement must be at the top level". Pecah menjadi
+ * beberapa pernyataan berurutan — contohnya verifikasi donasi di ruang-zis.js.
+ */
 export async function tanya(sql, params = []) {
   if (/^\s*(begin|commit|rollback|start transaction)\b/i.test(String(sql))) return { rows: [], rowCount: 0 };
   const q = isiParameter(String(sql).trim().replace(/;\s*$/, ""), params);

@@ -258,76 +258,96 @@ function pasangRuteZis(app, { tanya }) {
     if (!id) return res.status(400).json({ pesan: "Donasi tidak dikenali." });
 
     try {
+      /*
+       * Dijalankan sebagai beberapa pernyataan terpisah, bukan satu WITH besar.
+       *
+       * Layanan database membungkus setiap kueri baca dalam CTE satu lapis
+       * (`with t as (...) select ... from t`) untuk mengambil hasilnya. Bila kueri
+       * yang dikirim sudah memakai WITH dan berisi pengubah data (update/insert),
+       * PostgreSQL menolaknya: "WITH clause containing a data-modifying statement
+       * must be at the top level". Karena itu:
+       *   1. status donasi diubah oleh satu UPDATE bertingkat atas (RETURNING),
+       *   2. dana program, daftar donatur, dan rekap donatur diperbarui terpisah.
+       */
       const { rows } = await tanya(
-        `with diubah as (
-           update donasi
-              set status = 'dikonfirmasi', diperbarui = now()
-            where id = $1 and status = 'menunggu'
-            returning id, program_id, nama, telepon, anonim, jumlah, metode
-         ), program as (
-           update donasi_program p
-              set terkumpul = p.terkumpul + s.jumlah,
-                  jumlah_donatur = p.jumlah_donatur + 1,
-                  diperbarui = now()
-             from diubah s
-            where p.id = s.program_id
-            returning p.id
-         ), catatan_donatur as (
-           /* Donatur yang tampil di halaman program (tabel donasi_donatur). */
-           insert into donasi_donatur (id, program_id, nama, jumlah, metode, waktu, tampil)
-           select 'dnr-d' || s.id, s.program_id,
-                  case when s.anonim then 'Hamba Allah'
-                       else coalesce(nullif(trim(s.nama), ''), 'Hamba Allah') end,
-                  s.jumlah, s.metode, to_char(now(), 'YYYY-MM-DD'), true
-             from diubah s
-            where s.program_id is not null
-           on conflict (id) do nothing
-           returning id
-         ), nama_donatur as (
-           /* Nama dan nomor yang dipakai untuk daftar donatur ZIS.
-              Donasi anonim tetap dicatat sebagai "Hamba Allah". */
-           select s.program_id, s.jumlah,
-                  case when s.anonim then 'Hamba Allah'
-                       else coalesce(nullif(trim(s.nama), ''), 'Hamba Allah') end as nama_donatur,
-                  regexp_replace(coalesce(s.telepon, ''), '[^0-9]', '', 'g') as telepon_digit
-             from diubah s
-         ), pilih_donatur as (
-           /* Donatur yang sudah tercatat dicari lebih dahulu supaya tidak ada nama kembar:
-              nomor WhatsApp yang sama, atau nama yang sama ketika nomornya belum tersimpan. */
-           select d.id
-             from donatur d, nama_donatur n
-            where (n.telepon_digit <> '' and d.telepon = n.telepon_digit)
-               or (coalesce(d.telepon, '') = '' and lower(trim(d.nama)) = lower(trim(n.nama_donatur)))
-            order by (case when n.telepon_digit <> '' and d.telepon = n.telepon_digit then 0 else 1 end)
-            limit 1
-         ), perbarui_donatur as (
-           /* Donatur lama: catatannya ditambah, bukan dibuat baris baru. */
-           update donatur d
-              set nama = case when n.nama_donatur = 'Hamba Allah' then d.nama else n.nama_donatur end,
-                  telepon = case when n.telepon_digit <> '' then n.telepon_digit else d.telepon end,
-                  jumlah_donasi = d.jumlah_donasi + 1,
-                  jumlah_total = d.jumlah_total + n.jumlah,
-                  program_terakhir = coalesce(n.program_id, d.program_terakhir),
-                  diperbarui = now()
-             from nama_donatur n, pilih_donatur p
-            where d.id = p.id
-           returning d.id
-         ), donatur_baru as (
-           /* Donatur yang belum pernah tercatat: satu baris baru untuk satu orang. */
-           insert into donatur (id, nama, telepon, jumlah_donasi, jumlah_total, program_terakhir)
-           select $2 || md5(case when n.telepon_digit <> '' then n.telepon_digit else lower(trim(n.nama_donatur)) end),
-                  n.nama_donatur, nullif(n.telepon_digit, ''), 1, n.jumlah, n.program_id
-             from nama_donatur n
-            where not exists (select 1 from perbarui_donatur)
-           on conflict (id) do nothing
-           returning id
-         )
-         select id from diubah`,
-        [id, "dntr-"],
+        `update donasi
+            set status = 'dikonfirmasi', diperbarui = now()
+          where id = $1 and status = 'menunggu'
+          returning id, program_id, nama, telepon, anonim, jumlah, metode`,
+        [id],
       );
 
-      if (rows.length === 0)
+      const donasi = rows[0];
+      if (!donasi)
         return res.status(400).json({ pesan: "Donasi ini sudah diperiksa atau tidak ditemukan." });
+
+      const jumlah = angka(donasi.jumlah);
+      /* Nama pada daftar donatur: donasi anonim tetap dicatat "Hamba Allah". */
+      const namaDonatur = donasi.anonim ? "Hamba Allah" : String(donasi.nama ?? "").trim() || "Hamba Allah";
+      const teleponDigit = String(donasi.telepon ?? "").replace(/[^0-9]/g, "");
+
+      if (donasi.program_id) {
+        /* Dana masuk ke program terkait: terkumpul dan jumlah donatur bertambah. */
+        await tanya(
+          `update donasi_program
+              set terkumpul = coalesce(terkumpul, 0) + $2,
+                  jumlah_donatur = coalesce(jumlah_donatur, 0) + 1,
+                  diperbarui = now()
+            where id = $1`,
+          [donasi.program_id, jumlah],
+        );
+
+        /* Donatur yang tampil di halaman program (tabel donasi_donatur). */
+        await tanya(
+          `insert into donasi_donatur (id, program_id, nama, jumlah, metode, waktu, tampil)
+           values ($1, $2, $3, $4, $5, to_char(now(), 'YYYY-MM-DD'), true)
+           on conflict (id) do nothing`,
+          [`dnr-d${donasi.id}`, donasi.program_id, namaDonatur, jumlah, donasi.metode],
+        );
+      }
+
+      /* Donatur yang sudah tercatat dicari lebih dahulu supaya tidak ada nama kembar:
+         nomor WhatsApp yang sama, atau nama yang sama ketika nomornya belum tersimpan. */
+      const donaturAda = (
+        await tanya(
+          `select id
+             from donatur
+            where ($1 <> '' and telepon = $1)
+               or (coalesce(telepon, '') = '' and lower(trim(nama)) = lower(trim($2)))
+            order by (case when $1 <> '' and telepon = $1 then 0 else 1 end)
+            limit 1`,
+          [teleponDigit, namaDonatur],
+        )
+      ).rows[0];
+
+      if (donaturAda) {
+        /* Donatur lama: catatannya ditambah, bukan dibuat baris baru. */
+        await tanya(
+          `update donatur
+              set nama = case when $2 = 'Hamba Allah' then nama else $2 end,
+                  telepon = case when $3 <> '' then $3 else telepon end,
+                  jumlah_donasi = coalesce(jumlah_donasi, 0) + 1,
+                  jumlah_total = coalesce(jumlah_total, 0) + $4,
+                  program_terakhir = coalesce($5, program_terakhir),
+                  diperbarui = now()
+            where id = $1`,
+          [donaturAda.id, namaDonatur, teleponDigit, jumlah, donasi.program_id],
+        );
+      } else {
+        /* Donatur yang belum pernah tercatat: satu baris baru untuk satu orang. */
+        await tanya(
+          `insert into donatur (id, nama, telepon, jumlah_donasi, jumlah_total, program_terakhir)
+           values ('dntr-' || md5($1), $2, nullif($3, ''), 1, $4, $5)
+           on conflict (id) do nothing`,
+          [
+            teleponDigit !== "" ? teleponDigit : namaDonatur.toLowerCase().trim(),
+            namaDonatur,
+            teleponDigit,
+            jumlah,
+            donasi.program_id,
+          ],
+        );
+      }
 
       const lembaga = await namaLembaga();
       res.json({ ok: true, donasi: barisDonasi(await ambilSatu(id), lembaga), statistik: await ambilStatistik() });
