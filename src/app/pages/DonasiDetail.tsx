@@ -7,9 +7,9 @@ import { Icon } from "../components/Icons";
 import { KartuProgram } from "./Donasi";
 import { identitas } from "../data/content";
 import { cariProgram, progresProgram, sisaHari, tabDonasi } from "../data/donasi";
-import { kirimDonasiKeServer, menungguProgram, simpanMenunggu, type DonasiMenunggu } from "../lib/donasiMenunggu";
+import { kirimDonasiKeServer } from "../lib/donasiMenunggu";
 import { useKatalogDonasi, type ProgramLengkap } from "../lib/programDonasi";
-import { hariKe, rupiah, tanggalKotak, tanggalPanjang, tanggalPendek, tanggalRelatif } from "../lib/format";
+import { rupiah, tanggalKotak, tanggalPanjang, tanggalPendek, tanggalRelatif } from "../lib/format";
 
 const ikon = "h-[18px] w-[18px]";
 
@@ -30,7 +30,6 @@ export function HalamanDonasiDetail({
   const [formBuka, setFormBuka] = useState(false);
   const [galat, setGalat] = useState("");
   const [baru, setBaru] = useState<IsianDonasi | null>(null);
-  const [menunggu, setMenunggu] = useState<DonasiMenunggu[]>(() => (program ? menungguProgram(program.slug) : []));
 
   /* Katalog masih diambil dari server: jangan tampilkan "tidak ditemukan" lebih dahulu. */
   if (!program && !siap) {
@@ -76,7 +75,6 @@ export function HalamanDonasiDetail({
   const totalRincian = program.rincian.reduce((t, r) => t + r.jumlah, 0);
   const lainnya = daftar.filter((p) => p.slug !== program.slug).slice(0, 3);
   const riwayat = program.riwayat ?? [];
-  const totalMenunggu = menunggu.reduce((t, d) => t + d.nominal, 0);
   /* Metode pembayaran khusus program ini; diatur petugas di halaman Admin ZIS. */
   const metodeBerlaku = metodeProgram(program);
   const panduanMetode = (nama: string) =>
@@ -93,10 +91,11 @@ export function HalamanDonasiDetail({
   const tautanWa = `https://wa.me/${identitas.whatsapp.replace(/\D/g, "").replace(/^0/, "62")}?text=${encodeURIComponent(pesanWa)}`;
 
   const kirim = async (isian: IsianDonasi) => {
-    /* Donasi dikirim ke server supaya petugas ZIS dapat memverifikasinya,
-       lalu salinannya dicatat di peramban agar langsung tampil sebagai menunggu. */
+    /* Donasi dikirim ke server supaya petugas ZIS dapat memverifikasinya.
+       Halaman ini tidak lagi menyimpan salinan di peramban: angka dan daftar yang
+       tampil hanya yang benar-benar tercatat di database. */
     try {
-      const donasi = await kirimDonasiKeServer({
+      await kirimDonasiKeServer({
         program: program.slug,
         nama: isian.nama,
         anonim: isian.anonim,
@@ -105,23 +104,10 @@ export function HalamanDonasiDetail({
         pesan: isian.pesan,
         metode: isian.metode,
       });
-      const catatan: DonasiMenunggu = {
-        id: String(donasi.id),
-        slug: program.slug,
-        nama: isian.nama,
-        anonim: isian.anonim,
-        nominal: isian.nominal,
-        whatsapp: isian.whatsapp,
-        pesan: isian.pesan,
-        metode: isian.metode,
-        waktu: hariKe(0),
-      };
-      simpanMenunggu(catatan);
     } catch (e) {
       setGalat(e instanceof Error ? e.message : "Donasi belum bisa dikirim. Coba lagi.");
       return;
     }
-    setMenunggu(menungguProgram(program.slug));
     setFormBuka(false);
     setGalat("");
     setBaru(isian);
@@ -289,23 +275,6 @@ export function HalamanDonasiDetail({
                       : `${donatur} donatur`}
                   </span>
                 </p>
-
-                {menunggu.length > 0 ? (
-                  <div
-                    data-testid="donasi-menunggu"
-                    className="mt-2.5 rounded-xl border border-black/[0.08] bg-cream-50 p-3"
-                  >
-                    <p className="flex items-center gap-2 text-[10px] font-bold tracking-[0.14em] text-persis-900 uppercase">
-                      <Icon name="clock" className="h-[15px] w-[15px] text-gold-600" />
-                      Menunggu Verifikasi
-                    </p>
-                    <p className="mt-1.5 text-justify text-[11px] leading-relaxed text-ink-600">
-                      Ada <b>{menunggu.length} donasi</b> sejumlah <b>{rupiah(totalMenunggu)}</b> yang sedang diperiksa
-                      bendahara. Setelah dinyatakan sah, jumlahnya menambah dana terkumpul dan donaturnya tampil pada
-                      daftar di bawah.
-                    </p>
-                  </div>
-                ) : null}
 
                 {donaturTercatat.length > 0 ? (
                   <ul className="mt-2 divide-y divide-black/[0.06]">
