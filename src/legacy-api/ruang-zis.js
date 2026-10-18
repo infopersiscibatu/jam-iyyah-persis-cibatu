@@ -382,9 +382,48 @@ function pasangRuteZis(app, { tanya }) {
     ).rows.length > 0;
 
   /* --- Metode pembayaran resmi lembaga (tabel donasi_metode) -------------------------
-     Metode tidak ditambah atau dihapus dari sini karena setiap program donasi menautkan
-     id-nya; yang bisa diubah adalah nama, keterangan, langkah, gambar (mis. kode QRIS),
-     dan keaktifannya. */
+     Metode bisa ditambah dan diubah dari halaman ini. Yang tidak bisa dihapus hanyalah
+     metode yang masih dipakai program donasi (id-nya tertaut di donasi_program.metode);
+     untuk kasus itu metodenya cukup dimatikan. */
+
+  /** Periksa isi borang metode; kembalikan nilai siap simpan, atau pesan galatnya. */
+  const nilaiMetode = (b) => {
+    const nama = rapikan(b.nama, 80);
+    if (nama.length < 2) return { galat: "Nama metode minimal 2 huruf." };
+    /* Langkah kosong dibuang supaya tidak tampil sebagai nomor kosong di popup situs. */
+    const langkah = (Array.isArray(b.langkah) ? b.langkah : [])
+      .map((l) => rapikan(l, 400))
+      .filter((l) => l.length > 0);
+    if (langkah.length === 0) return { galat: "Isi minimal satu langkah pembayaran." };
+    const gambarUrl = rapikan(b.gambarUrl, 600);
+    if (/qris/i.test(nama) && !gambarUrl)
+      return { galat: "Metode QRIS wajib memakai gambar kode QR agar bisa dipindai donatur." };
+    return {
+      nama,
+      keterangan: rapikan(b.keterangan, 300),
+      langkah,
+      gambarUrl: gambarUrl || null,
+      mediaId: rapikan(b.mediaId, 60) || null,
+      aktif: b.aktif !== false,
+    };
+  };
+
+  /** Sudah ada metode lain dengan nama yang sama? */
+  const namaMetodeAda = async (nama, kecuali = "") =>
+    (
+      await tanya(
+        `select id from donasi_metode
+          where lower(trim(nama)) = lower(trim($1)) and ($2 = '' or id <> $2)
+          limit 1`,
+        [nama, kecuali || ""],
+      )
+    ).rows.length > 0;
+
+  /** Berapa program donasi yang memakai metode ini. */
+  const metodeDipakai = async (id) =>
+    ((await tanya("select count(*)::int as n from donasi_program where metode @> $1::jsonb", [JSON.stringify([id])]))
+      .rows[0]?.n ?? 0);
+
   app.get("/api/unit/zis/metode", async (req, res) => {
     if (!wajibZis(req, res)) return;
     try {
@@ -394,34 +433,72 @@ function pasangRuteZis(app, { tanya }) {
     }
   });
 
+  app.post("/api/unit/zis/metode", async (req, res) => {
+    if (!wajibZis(req, res)) return;
+    const nilai = nilaiMetode(req.body || {});
+    if (nilai.galat) return res.status(400).json({ pesan: nilai.galat });
+    try {
+      if (await namaMetodeAda(nilai.nama))
+        return res.status(409).json({ pesan: `Metode \u201c${nilai.nama}\u201d sudah ada.` });
+      const urut = (await tanya("select coalesce(max(urutan), 0) + 1 as n from donasi_metode")).rows[0].n;
+      await tanya(
+        `insert into donasi_metode (id, urutan, nama, keterangan, langkah, gambar_url, media_id, aktif)
+         values ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)`,
+        [
+          idBaru("dm"),
+          urut,
+          nilai.nama,
+          nilai.keterangan,
+          JSON.stringify(nilai.langkah),
+          nilai.gambarUrl,
+          nilai.mediaId,
+          nilai.aktif,
+        ],
+      );
+      res.json({ ok: true, metode: await daftarMetode() });
+    } catch (e) {
+      res.status(500).json({ pesan: e.message });
+    }
+  });
+
   app.put("/api/unit/zis/metode/:id", async (req, res) => {
     if (!wajibZis(req, res)) return;
-    const b = req.body || {};
     const id = rapikan(req.params.id, 60);
-    const nama = rapikan(b.nama, 80);
-    if (nama.length < 2) return res.status(400).json({ pesan: "Nama metode minimal 2 huruf." });
+    const nilai = nilaiMetode(req.body || {});
+    if (nilai.galat) return res.status(400).json({ pesan: nilai.galat });
     try {
       const ada = (await tanya("select id from donasi_metode where id = $1", [id])).rows[0];
       if (!ada) return res.status(404).json({ pesan: "Metode pembayaran tidak ditemukan." });
-
-      /* Langkah pembayaran: baris kosong dibuang supaya tidak tampil sebagai nomor kosong. */
-      const langkah = (Array.isArray(b.langkah) ? b.langkah : [])
-        .map((l) => rapikan(l, 400))
-        .filter((l) => l.length > 0);
-      if (langkah.length === 0)
-        return res.status(400).json({ pesan: "Isi minimal satu langkah pembayaran." });
-
-      const gambarUrl = rapikan(b.gambarUrl, 600);
-      const mediaId = rapikan(b.mediaId, 60) || null;
-      if (/qris/i.test(nama) && !gambarUrl)
-        return res.status(400).json({ pesan: "Metode QRIS wajib memakai gambar kode QR agar bisa dipindai donatur." });
+      if (await namaMetodeAda(nilai.nama, id))
+        return res.status(409).json({ pesan: `Metode \u201c${nilai.nama}\u201d sudah ada.` });
 
       await tanya(
         `update donasi_metode set nama = $2, keterangan = $3, langkah = $4::jsonb, gambar_url = $5,
                 media_id = $6, aktif = $7, diperbarui = now()
           where id = $1`,
-        [id, nama, rapikan(b.keterangan, 300), JSON.stringify(langkah), gambarUrl || null, mediaId, b.aktif !== false],
+        [id, nilai.nama, nilai.keterangan, JSON.stringify(nilai.langkah), nilai.gambarUrl, nilai.mediaId, nilai.aktif],
       );
+      res.json({ ok: true, metode: await daftarMetode() });
+    } catch (e) {
+      res.status(500).json({ pesan: e.message });
+    }
+  });
+
+  app.delete("/api/unit/zis/metode/:id", async (req, res) => {
+    if (!wajibZis(req, res)) return;
+    const id = rapikan(req.params.id, 60);
+    try {
+      const ada = (await tanya("select id, nama from donasi_metode where id = $1", [id])).rows[0];
+      if (!ada) return res.status(404).json({ pesan: "Metode pembayaran tidak ditemukan." });
+      const dipakai = await metodeDipakai(id);
+      if (dipakai > 0)
+        return res
+          .status(400)
+          .json({ pesan: `Metode ini masih dipakai ${dipakai} program donasi. Matikan saja, atau ganti metodenya di program tersebut lebih dulu.` });
+      const sisa = (await tanya("select count(*)::int as n from donasi_metode")).rows[0]?.n ?? 0;
+      if (sisa <= 1)
+        return res.status(400).json({ pesan: "Minimal satu metode pembayaran harus tetap ada. Tambah metode lain dulu." });
+      await tanya("delete from donasi_metode where id = $1", [id]);
       res.json({ ok: true, metode: await daftarMetode() });
     } catch (e) {
       res.status(500).json({ pesan: e.message });
