@@ -9,15 +9,16 @@ import {
   TombolIkon,
   TombolSimpan,
 } from "../../../components/admin/Form";
-import { beritahu } from "../../../lib/notifikasiAdmin";
+import { beritahu, mintaKonfirmasi } from "../../../lib/notifikasiAdmin";
 import {
   ambilMetodeZis,
+  hapusMetodeZis,
   simpanMetodeZis,
   useZisData,
   type BorangMetodeZis,
   type MetodeBayarZis,
 } from "../../../lib/zis";
-import { Bagian, Lencana } from "./Bagian";
+import { Bagian, Kosong, Lencana } from "./Bagian";
 
 /**
  * Metode Pembayaran — kanal pembayaran resmi lembaga yang muncul pada formulir donasi
@@ -25,20 +26,35 @@ import { Bagian, Lencana } from "./Bagian";
  * (khusus QRIS: gambar kode QR resmi supaya donatur bisa langsung memindainya di popup),
  * dan keaktifannya.
  *
- * Metode tidak ditambah atau dihapus dari halaman ini karena setiap program donasi
- * menautkan id-nya; mematikan metode sudah cukup untuk menyembunyikannya dari situs.
+ * Metode bisa ditambah lewat tombol "Tambah" pada bagian Kanal Pembayaran. Metode yang
+ * sudah dipakai program donasi tidak bisa dihapus (id-nya tertaut di program), cukup
+ * dimatikan — layanan yang menolak penghapusannya dan pesannya ditampilkan di sini.
  */
 export default function MetodePembayaranZis() {
   const muat = useCallback(() => ambilMetodeZis(), []);
   const { data, setData, memuat, galat, muat: segarkan } = useZisData(muat);
 
-  const [borang, setBorang] = useState<(BorangMetodeZis & { id: string }) | null>(null);
+  const [borang, setBorang] = useState<(BorangMetodeZis & { id?: string }) | null>(null);
   const [sibuk, setSibuk] = useState(false);
   const [pesan, setPesan] = useState<{ tipe: "sukses" | "galat"; teks: string } | null>(null);
 
   const daftar: MetodeBayarZis[] = data ?? [];
   const aktif = daftar.filter((m) => m.aktif);
   const perluGambar = borang ? /qris/i.test(borang.nama) : false;
+
+  /** Borang kosong untuk metode baru. */
+  const bukaBorangBaru = () => {
+    setPesan(null);
+    setBorang({
+      nama: "",
+      keterangan: "",
+      langkah: ["Buka aplikasi pembayaran, lalu pindai kode QRIS lembaga."],
+      gambarUrl: "",
+      mediaId: null,
+      aktif: true,
+    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   const bukaBorang = (m: MetodeBayarZis) => {
     setPesan(null);
@@ -58,21 +74,40 @@ export default function MetodePembayaranZis() {
     setSibuk(true);
     setPesan(null);
     try {
-      const hasil = await simpanMetodeZis(borang.id, {
-        nama: borang.nama,
-        keterangan: borang.keterangan,
-        langkah: borang.langkah.filter((l) => l.trim().length > 0),
-        gambarUrl: borang.gambarUrl,
-        mediaId: borang.mediaId,
-        aktif: borang.aktif,
-      });
+      const hasil = await simpanMetodeZis(
+        {
+          nama: borang.nama,
+          keterangan: borang.keterangan,
+          langkah: borang.langkah.filter((l) => l.trim().length > 0),
+          gambarUrl: borang.gambarUrl,
+          mediaId: borang.mediaId,
+          aktif: borang.aktif,
+        },
+        borang.id,
+      );
       setData(hasil);
-      beritahu("sukses", `Metode ${borang.nama} diperbarui.`);
+      beritahu("sukses", borang.id ? `Metode ${borang.nama} diperbarui.` : `Metode ${borang.nama} ditambahkan.`);
       setBorang(null);
     } catch (e) {
       setPesan({ tipe: "galat", teks: e instanceof Error ? e.message : "Metode tidak bisa disimpan." });
     } finally {
       setSibuk(false);
+    }
+  };
+
+  const hapus = async (m: MetodeBayarZis) => {
+    const lanjut = await mintaKonfirmasi(
+      `Hapus metode “${m.nama}”? Metode yang masih dipakai program donasi tidak bisa dihapus — matikan saja.`,
+      { judul: "Hapus metode pembayaran", labelYa: "Ya, hapus" },
+    );
+    if (!lanjut) return;
+    try {
+      setData(await hapusMetodeZis(m.id));
+      setPesan(null);
+      beritahu("sukses", `Metode “${m.nama}” dihapus.`);
+    } catch (e) {
+      setPesan({ tipe: "galat", teks: e instanceof Error ? e.message : "Metode tidak bisa dihapus." });
+      beritahu("galat", e instanceof Error ? e.message : "Metode tidak bisa dihapus.");
     }
   };
 
@@ -101,7 +136,9 @@ export default function MetodePembayaranZis() {
           />
 
           <div className="mt-3.5 space-y-3 rounded-2xl border border-black/[0.08] bg-white p-4">
-            <h2 className="font-header text-[13px] font-bold text-ink-900">Ubah metode pembayaran</h2>
+            <h2 className="font-header text-[13px] font-bold text-ink-900">
+              {borang.id ? "Ubah metode pembayaran" : "Tambah metode pembayaran"}
+            </h2>
             <Kolom
               testid="metode-nama"
               label="Nama metode"
@@ -136,7 +173,7 @@ export default function MetodePembayaranZis() {
               <TombolSimpan
                 sibuk={sibuk}
                 testid="simpan-metode"
-                label="Simpan perubahan"
+                label={borang.id ? "Simpan perubahan" : "Tambah metode"}
                 onClick={() => void simpan()}
               />
               <button
@@ -162,6 +199,16 @@ export default function MetodePembayaranZis() {
           keterangan="Dipakai bersama oleh semua program donasi. Setiap program tinggal memilih kanal mana yang berlaku lewat kolom Metode pembayaran di Daftar Program."
           jumlah={daftar.length}
           nada={aktif.length > 0 ? "hijau" : "redup"}
+          aksi={
+            <button
+              type="button"
+              data-testid="tambah-metode"
+              onClick={bukaBorangBaru}
+              className="rounded-full bg-persis-900 px-3 py-1.5 text-[11px] font-bold text-white"
+            >
+              Tambah
+            </button>
+          }
         >
           {memuat && !data ? (
             <div className="space-y-2">
@@ -180,6 +227,11 @@ export default function MetodePembayaranZis() {
                 Muat ulang
               </button>
             </div>
+          ) : daftar.length === 0 ? (
+            <Kosong
+              testid="metode-kosong"
+              teks="Belum ada metode pembayaran. Tekan Tambah untuk membuat kanal pertama, misalnya QRIS atau transfer bank."
+            />
           ) : (
             <ul className="space-y-2.5">
               {daftar.map((m) => (
@@ -217,15 +269,24 @@ export default function MetodePembayaranZis() {
                         {m.gambarUrl ? "Gambar sudah diunggah dan tampil di popup donasi." : "Belum ada gambar."}
                       </p>
                     </div>
-                    <TombolIkon
-                      nama="pencil"
-                      label={`Ubah metode ${m.nama}`}
-                      testid={`metode-ubah-${m.id}`}
-                      onClick={() => {
-                        bukaBorang(m);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
-                    />
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <TombolIkon
+                        nama="pencil"
+                        label={`Ubah metode ${m.nama}`}
+                        testid={`metode-ubah-${m.id}`}
+                        onClick={() => {
+                          bukaBorang(m);
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                      />
+                      <TombolIkon
+                        nama="trash"
+                        bahaya
+                        label={`Hapus metode ${m.nama}`}
+                        testid={`metode-hapus-${m.id}`}
+                        onClick={() => void hapus(m)}
+                      />
+                    </div>
                   </div>
                 </li>
               ))}
