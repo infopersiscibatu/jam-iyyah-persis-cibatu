@@ -28,6 +28,7 @@ import { jenjangDariUnit, unitSaatIni } from "./lib/jenjang";
 import { type Berita , type Notifikasi } from "./data/content";
 import { useNotifikasi } from "./lib/useNotifikasi";
 import { navTampil, useBeranda } from "./lib/beranda";
+import { mulaiMuatAwal, useMuatAwal } from "./lib/muatAwal";
 import { useProfil } from "./lib/profil";
 import LayarMuat from "./components/LayarMuat";
 import { aktifkanPush, daftarkanServiceWorker, laporPostinganTerbaru } from "./lib/push";
@@ -127,10 +128,18 @@ export default function App() {
   const profil = useProfil();
   /* Susunan menu bawah disusun dari panel admin (lihat menu Beranda → Navigasi). */
   const beranda = useBeranda();
+  /* Seluruh data situs mulai dimuat selagi layar pembuka tampil (lihat lib/muatAwal.ts):
+     berita, artikel, agenda, pengumuman, galeri, kajian, SPMB, jenjang, kontak, donasi,
+     dan iklan. Dengan begitu halaman mana pun langsung tampil lengkap. */
+  const muatAwal = useMuatAwal();
+  useEffect(() => {
+    void mulaiMuatAwal();
+  }, []);
   /* Layar logo + "Memuat Data" tampil sampai profil DAN data beranda (statistik,
      carousel, grid menu) benar-benar tiba dari database, agar kartu statistik
-     tidak sempat menampilkan angka contoh. */
-  const dataSiap = profil.dariDatabase && beranda.dariDatabase;
+     tidak sempat menampilkan angka contoh — dan sampai bagian lain selesai dimuat
+     atau batas waktunya habis. */
+  const dataSiap = profil.dariDatabase && beranda.dariDatabase && muatAwal.beres;
   const [memuat, setMemuat] = useState(!dataSiap);
   const mulaiMuat = useRef(Date.now());
   const pindahRef = useRef<(t: string, s?: string) => void>(() => {});
@@ -149,7 +158,7 @@ export default function App() {
 
   /* Jaringan lambat atau layanan tidak menjawab: layar pembuka tidak menahan pengunjung. */
   useEffect(() => {
-    const jaga = setTimeout(() => setMemuat(false), 3200);
+    const jaga = setTimeout(() => setMemuat(false), 4200);
     return () => clearTimeout(jaga);
   }, []);
 
