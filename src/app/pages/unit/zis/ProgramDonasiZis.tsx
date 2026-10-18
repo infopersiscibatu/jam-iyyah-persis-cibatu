@@ -66,10 +66,19 @@ const kosongkan = (kategori: string, pengelola: string, metode: string[]): Boran
   aktif: true,
 });
 
-/** Penyunting rincian penggunaan dana: satu baris = satu keperluan dan jumlahnya. */
+/**
+ * Penyunting rincian penggunaan dana.
+ *
+ * Satu baris = satu keperluan beserta jumlahnya. Susunannya ATAS–BAWAH: nama
+ * keperluan lebih dahulu, nominalnya di bawahnya, baru tombol hapus di samping
+ * nominal — bukan tiga kolom berdampingan seperti tabel. Dengan begitu isian tetap
+ * terbaca penuh di layar HP yang sempit dan tidak ada kolom yang terpotong.
+ */
 function Rincian({ nilai, onUbah }: { nilai: { item: string; jumlah: number }[]; onUbah: (v: { item: string; jumlah: number }[]) => void }) {
   const ubah = (i: number, bagian: Partial<{ item: string; jumlah: number }>) =>
     onUbah(nilai.map((r, j) => (j === i ? { ...r, ...bagian } : r)));
+
+  const labelKecil = "mb-1 block text-[10px] font-bold tracking-[0.08em] text-persis-900 uppercase";
 
   return (
     <div className="space-y-2">
@@ -78,31 +87,43 @@ function Rincian({ nilai, onUbah }: { nilai: { item: string; jumlah: number }[];
         <p className="text-[10.5px] leading-relaxed text-ink-400">Belum ada rincian.</p>
       ) : null}
       {nilai.map((r, i) => (
-        <div key={i} className="flex items-start gap-2">
-          <input
-            className={isian}
-            data-testid={`program-rincian-item-${i}`}
-            value={r.item}
-            placeholder="Mis. Pembelian 20 set meja belajar"
-            aria-label={`Keperluan rincian ${i + 1}`}
-            onChange={(e) => ubah(i, { item: e.target.value })}
-          />
-          <input
-            className={`${isian} w-[130px] shrink-0`}
-            data-testid={`program-rincian-jumlah-${i}`}
-            value={r.jumlah ? String(r.jumlah) : ""}
-            inputMode="numeric"
-            placeholder="0"
-            aria-label={`Jumlah rincian ${i + 1}`}
-            onChange={(e) => ubah(i, { jumlah: angkaDari(e.target.value) })}
-          />
-          <TombolIkon
-            nama="trash"
-            label={`Hapus rincian ${i + 1}`}
-            bahaya
-            testid={`program-rincian-hapus-${i}`}
-            onClick={() => onUbah(nilai.filter((_, j) => j !== i))}
-          />
+        <div
+          key={i}
+          data-testid={`program-rincian-baris-${i}`}
+          className="rounded-xl border border-black/[0.08] bg-cream-50/70 p-2.5"
+        >
+          <div>
+            <span className={labelKecil}>Keperluan {i + 1}</span>
+            <input
+              className={isian}
+              data-testid={`program-rincian-item-${i}`}
+              value={r.item}
+              placeholder="Mis. Pembelian 20 set meja belajar"
+              aria-label={`Keperluan rincian ${i + 1}`}
+              onChange={(e) => ubah(i, { item: e.target.value })}
+            />
+          </div>
+          <div className="mt-2 flex items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <span className={labelKecil}>Jumlah (Rp)</span>
+              <input
+                className={`${isian} tabular-nums`}
+                data-testid={`program-rincian-jumlah-${i}`}
+                value={r.jumlah ? String(r.jumlah) : ""}
+                inputMode="numeric"
+                placeholder="0"
+                aria-label={`Jumlah rincian ${i + 1}`}
+                onChange={(e) => ubah(i, { jumlah: angkaDari(e.target.value) })}
+              />
+            </div>
+            <TombolIkon
+              nama="trash"
+              label={`Hapus rincian ${i + 1}`}
+              bahaya
+              testid={`program-rincian-hapus-${i}`}
+              onClick={() => onUbah(nilai.filter((_, j) => j !== i))}
+            />
+          </div>
         </div>
       ))}
       <button
