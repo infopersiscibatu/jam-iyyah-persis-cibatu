@@ -70,6 +70,24 @@ function pasangRuteDonasi(app, { tanya }) {
 
       const idAktif = new Set(metode.map((m) => m.id));
 
+      /*
+       * Total penyaluran sebuah program diambil dari laporan penyalurannya
+       * (donasi_riwayat berjenis 'penyaluran'). Sisa dana adalah donasi masuk
+       * dikurangi total penyaluran; bila dana sudah habis dipakai sisanya 0,
+       * dan tidak pernah negatif walau penyaluran melebihi donasi yang masuk.
+       */
+      const penyaluranProgram = (id) =>
+        riwayat
+          .filter((r) => r.program_id === id && r.jenis === "penyaluran")
+          .reduce((total, r) => total + Math.max(0, Number(r.nominal ?? 0)), 0);
+
+      /** Tiga angka dana program: donasi masuk, total penyaluran, dan sisa dana. */
+      const danaProgram = (p) => {
+        const masuk = Number(p.terkumpul ?? 0);
+        const penyaluran = penyaluranProgram(p.id);
+        return { masuk, penyaluran, sisa: Math.max(0, masuk - penyaluran) };
+      };
+
       res.json({
         ok: true,
         metode,
@@ -83,6 +101,8 @@ function pasangRuteDonasi(app, { tanya }) {
           target: Number(p.target ?? 0),
           terkumpul: Number(p.terkumpul ?? 0),
           donatur: Number(p.jumlah_donatur ?? 0),
+          /* Angka dana program: donasi masuk, total penyaluran, sisa dana. */
+          ...danaProgram(p),
           batas: tanggal(p.batas),
           ringkasan: p.ringkasan ?? "",
           pengelola: p.pengelola ?? "",
