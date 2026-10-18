@@ -36,7 +36,7 @@ export default function FormDonasi({
   const [anonim, setAnonim] = useState(false);
   const [wa, setWa] = useState("");
   const [pesan, setPesan] = useState("");
-  const [metode, setMetode] = useState(pilihanMetode[0].id);
+  const [metode, setMetode] = useState(pilihanMetode[0]?.id ?? "");
   const [galatIsian, setGalatIsian] = useState<Record<string, string>>({});
   const [mengirim, setMengirim] = useState(false);
 
@@ -50,6 +50,9 @@ export default function FormDonasi({
     if (nominal < 10000) salah.nominal = "Nominal minimal Rp10.000.";
     if (!anonim && nama.trim().length < 3) salah.nama = "Nama lengkap minimal 3 huruf.";
     if (wa.replace(/\D/g, "").length < 9) salah.whatsapp = "Nomor WhatsApp minimal 9 angka, contoh 081234567890.";
+    /* Metode pembayaran diatur petugas di panel ZIS; bila belum ada, jangan kirim
+       donasi yang metode pembayarannya kosong. */
+    if (pilihanMetode.length === 0) salah.metode = "Metode pembayaran belum diatur. Hubungi sekretariat lembaga.";
     setGalatIsian(salah);
     if (Object.keys(salah).length > 0) return;
     setMengirim(true);
@@ -60,7 +63,7 @@ export default function FormDonasi({
         whatsapp: wa.trim(),
         nominal,
         pesan: pesan.trim(),
-        metode: (pilihanMetode.find((m) => m.id === metode) ?? pilihanMetode[0]).nama,
+        metode: (pilihanMetode.find((m) => m.id === metode) ?? pilihanMetode[0])?.nama ?? "",
       });
     } finally {
       setMengirim(false);
@@ -295,6 +298,16 @@ export default function FormDonasi({
               );
             })}
           </ul>
+          {pilihanMetode.length === 0 ? (
+            <p
+              data-testid="donasi-metode-kosong"
+              className="mt-2 rounded-xl border border-gold-500/30 bg-cream-50 px-3.5 py-2.5 text-justify text-[10.5px] leading-relaxed text-ink-700"
+            >
+              Metode pembayaran belum diatur petugas. Donasi sementara dapat disalurkan lewat rekening resmi atau dengan
+              menghubungi sekretariat; formulir ini belum dapat dikirim sampai metodenya tersedia.
+            </p>
+          ) : null}
+          {galatIsian.metode ? <p className="field-error">{galatIsian.metode}</p> : null}
         </div>
 
         <div
