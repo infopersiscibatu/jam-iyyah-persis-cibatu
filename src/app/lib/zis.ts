@@ -171,10 +171,22 @@ export async function ambilMetodeZis(): Promise<MetodeBayarZis[]> {
   return jawab.metode ?? [];
 }
 
-export async function simpanMetodeZis(id: string, nilai: BorangMetodeZis): Promise<MetodeBayarZis[]> {
+/** Simpan metode: tanpa `id` berarti metode baru (POST), dengan `id` berarti ubah (PUT). */
+export async function simpanMetodeZis(nilai: BorangMetodeZis, id?: string): Promise<MetodeBayarZis[]> {
+  const jawab = await mintaUnit<{ metode: MetodeBayarZis[] }>(
+    id ? `/api/unit/zis/metode/${encodeURIComponent(id)}` : "/api/unit/zis/metode",
+    {
+      method: id ? "PUT" : "POST",
+      body: JSON.stringify(nilai),
+    },
+  );
+  return jawab.metode ?? [];
+}
+
+/** Hapus metode. Layanan menolak bila metodenya masih dipakai program donasi. */
+export async function hapusMetodeZis(id: string): Promise<MetodeBayarZis[]> {
   const jawab = await mintaUnit<{ metode: MetodeBayarZis[] }>(`/api/unit/zis/metode/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    body: JSON.stringify(nilai),
+    method: "DELETE",
   });
   return jawab.metode ?? [];
 }
