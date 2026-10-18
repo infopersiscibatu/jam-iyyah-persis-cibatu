@@ -47,6 +47,12 @@ export type ProgramLengkap = ProgramDonasi & {
   donaturTampil?: DonaturApi[];
   /** Id metode pembayaran yang berlaku untuk program ini. */
   metode?: string[];
+  /** Total donasi yang sudah masuk ke program ini (dari server). */
+  masuk?: number;
+  /** Total laporan penyaluran program ini (dari server). */
+  penyaluran?: number;
+  /** Sisa dana: donasi masuk dikurangi penyaluran, tidak pernah negatif. */
+  sisa?: number;
 };
 
 export type KatalogDonasi = {
