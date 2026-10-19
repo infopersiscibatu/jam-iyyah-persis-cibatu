@@ -1,3 +1,5 @@
+import { Button } from "@/components/ui/button";
+import MomenKegiatan from "../components/MomenKegiatan";
 import { teksPolos } from "../lib/isiKaya";
 import { useEffect, useState } from "react";
 import GridMenu from "../components/GridMenu";
@@ -10,13 +12,11 @@ import { Icon } from "../components/Icons";
 import type { Berita, Pengumuman } from "../data/content";
 import {
   angkaRingkas,
-  tanggalKotak,
   tanggalPanjang,
-  tanggalPendek,
   tanggalRelatif,
 } from "../lib/format";
 import { beritaTrending, terbitSaja, useBerita } from "../lib/berita";
-import { cariPengumuman, hitungDibaca as hitungDibacaPengumuman, pengumumanTerbaru, pengumumanUtama, usePengumuman } from "../lib/pengumuman";
+import { cariPengumuman, hitungDibaca as hitungDibacaPengumuman, pengumumanTerbaru, usePengumuman } from "../lib/pengumuman";
 import {
   agendaTerdekat,
   cariAgenda,
@@ -32,10 +32,7 @@ const ikon = "h-[18px] w-[18px]";
 function BagianPengumumanTerbaru({ sasaran }: { sasaran?: string | null }) {
   const data = usePengumuman();
   const [pilih, setPilih] = useState<Pengumuman | null>(null);
-  const terbaru = pengumumanTerbaru(data, 5);
-  const utama = pengumumanUtama(data);
-  const lain = utama ? terbaru.filter((p) => p.id !== utama.id).slice(0, 2) : terbaru.slice(0, 2);
-
+  const terbaru = pengumumanTerbaru(data, 4);
   /* Notifikasi pengumuman membuka detailnya langsung. */
   useEffect(() => {
     if (!sasaran) return;
@@ -49,58 +46,24 @@ function BagianPengumumanTerbaru({ sasaran }: { sasaran?: string | null }) {
     <section aria-label="Pengumuman terbaru">
       <JudulSeksi
         icon={<Icon name="megaphone" className={ikon} />}
-        title="Pengumuman Terbaru"
-        subtitle={`${terbaru.length} pengumuman terbaru`}
+        title="Pengumuman"
+        subtitle="Kabar terbaru dari cabang"
         tone="gold"
       />
 
-      {utama ? (
-      <article className="rounded-2xl border border-black/[0.08] border-l-[3px] border-l-gold-500 bg-white p-4">
-        <p className="text-[9.5px] font-semibold tracking-[0.14em] text-persis-900 uppercase">
-          {utama.pinned ? "Disematkan" : "Terbaru"} · {tanggalPanjang(utama.date)}
-        </p>
-        <h3 className="font-header mt-1.5 text-[14.5px] leading-snug font-bold text-ink-900">{utama.title}</h3>
-        <p className="mt-1.5 line-clamp-2 text-justify text-[12px] leading-relaxed text-ink-600">{utama.summary}</p>
-        <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="rounded-full bg-cream-100 px-2.5 py-1 text-[10.5px] font-medium text-persis-900">
-            {utama.category}
-          </span>
-          <button
-            type="button"
-            onClick={() => setPilih(utama)}
-            data-testid="pengumuman-baca"
-            className="inline-flex items-center gap-1.5 rounded-full bg-persis-900 px-3.5 py-1.5 text-[11.5px] font-semibold text-white transition hover:bg-persis-800 active:scale-[0.98]"
-          >
-            Baca
-            <Icon name="arrow-right" className="h-3.5 w-3.5" />
-          </button>
-        </div>
-      </article>
-      ) : null}
-
-      <ul className="mt-2.5 divide-y divide-black/[0.06] overflow-hidden rounded-2xl border border-black/[0.08] bg-white">
-        {lain.map((p) => (
-          <li key={p.id}>
-            <button
-              type="button"
-              onClick={() => setPilih(p)}
-              aria-label={`Baca pengumuman: ${p.title}`}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left transition active:bg-cream-50"
-            >
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-persis-700/10 bg-mint-100 text-persis-800">
-                <Icon name="megaphone" className={ikon} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block line-clamp-2 text-[12.5px] leading-snug font-medium text-ink-900">{p.title}</span>
-                <span className="mt-0.5 block text-[10.5px] text-persis-900">{p.category}</span>
-              </span>
-              <span className="flex shrink-0 items-center gap-1 text-[10.5px] text-persis-900">
-                {tanggalPendek(p.date)}
-                <Icon name="chevron-right" className="h-3.5 w-3.5" />
-              </span>
-            </button>
-          </li>
-        ))}
+      <ul className="card-line divide-y divide-line overflow-hidden">
+        {terbaru.map((p) => <li key={p.id}>
+          <Button variant="ghost" onClick={() => {
+            setPilih(p);
+            void hitungDibacaPengumuman(p.id).then((n) => {
+              if (n !== null) setPilih((k) => k?.id === p.id ? { ...k, views: n } : k);
+            });
+          }} aria-label={`Baca pengumuman: ${p.title}`} data-testid={p.pinned ? "pengumuman-baca" : undefined} className="flex h-auto w-full items-center gap-3 rounded-none px-3.5 py-3 text-left whitespace-normal hover:bg-mist">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-mist text-ink-700"><Icon name="megaphone" className="h-3.5 w-3.5" /></span>
+            <span className="min-w-0 flex-1"><span className="block line-clamp-2 text-[11.5px] leading-snug font-semibold text-ink-900">{p.title}</span><span className="mt-0.5 block text-[9.5px] text-ink-400"><span className="font-semibold text-gold-700">{p.category}</span> · {tanggalRelatif(p.date)}</span></span>
+            <Icon name="chevron-right" className="h-3.5 w-3.5 shrink-0 text-ink-400" />
+          </Button>
+        </li>)}
       </ul>
 
       <Popup
@@ -119,83 +82,14 @@ function BagianPengumumanTerbaru({ sasaran }: { sasaran?: string | null }) {
   );
 }
 
-/* ------------------------------------ Pengumuman ------------------------------------ */
-
-function BagianPengumuman() {
-  const data = usePengumuman();
-  const [pilih, setPilih] = useState<Pengumuman | null>(null);
-  const items = pengumumanTerbaru(data, 5);
-
-  /* Jumlah dibaca bertambah setiap pengumuman dibuka, lalu angkanya diperbarui. */
-  const buka = (p: Pengumuman) => {
-    setPilih(p);
-    void hitungDibacaPengumuman(p.id).then((n) => {
-      if (n === null) return;
-      setPilih((kini) => (kini && kini.id === p.id ? { ...kini, views: n } : kini));
-    });
-  };
-
-  return (
-    <section aria-label="Daftar pengumuman">
-      <JudulSeksi
-        icon={<Icon name="newspaper" className={ikon} />}
-        title="Pengumuman"
-        subtitle="Lima pengumuman terbaru"
-      />
-
-      <ul className="divide-y divide-black/[0.06] overflow-hidden rounded-2xl border border-black/[0.08] bg-white">
-        {items.map((p) => {
-          const { day, month } = tanggalKotak(p.date);
-          return (
-            <li key={p.id}>
-              <button
-                type="button"
-                onClick={() => buka(p)}
-                aria-label={`Baca pengumuman: ${p.title}`}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition active:bg-cream-50"
-              >
-                <span className="w-10 shrink-0 border-r border-black/[0.06] pr-2 text-center">
-                  <span className="font-header block text-[15px] leading-none font-bold text-persis-800">{day}</span>
-                  <span className="mt-0.5 block text-[9.5px] font-semibold text-persis-900 uppercase">{month}</span>
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block line-clamp-2 text-[12.5px] leading-snug font-medium text-ink-900">
-                    {p.title}
-                  </span>
-                  <span className="mt-0.5 inline-flex items-center gap-1.5 text-[10.5px] text-persis-900">
-                    <Icon name="megaphone" className="h-3.5 w-3.5 text-gold-600" />
-                    {p.category} · {tanggalRelatif(p.date)}
-                  </span>
-                </span>
-                <Icon name="chevron-right" className="h-4 w-4 shrink-0 text-persis-900" />
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
-      <Popup
-        open={pilih !== null}
-        onClose={() => setPilih(null)}
-        testId="popup-pengumuman-lengkap"
-        bagikan={pilih ? { judul: pilih.title, ringkasan: pilih.summary, jalur: `/#/beranda/pengumuman/${pilih.id}` } : undefined}
-        title={pilih?.title ?? ""}
-        icon={<Icon name="megaphone" className={ikon} />}
-        keterangan={
-          pilih ? `${pilih.category} · ${tanggalPanjang(pilih.date)} · ${angkaRingkas(pilih.views)} dibaca` : ""
-        }
-        detail={pilih?.detail ?? []}
-      />
-    </section>
-  );
-}
-
 /* -------------------------------------- Agenda -------------------------------------- */
 
 function BagianAgenda({ sasaran }: { sasaran?: string | null }) {
   const data = useAgenda();
   const [pilih, setPilih] = useState<AgendaTampil | null>(null);
-  const items = agendaTerdekat(data, 5);
+  const items = agendaTerdekat(data, 1);
+  const terdekat = items[0];
+  const sisa = terdekat ? Math.max(0, Math.ceil((new Date(`${terdekat.date}T00:00:00`).getTime() - new Date().setHours(0, 0, 0, 0)) / 86400000)) : 0;
 
   /* Jumlah dibaca bertambah setiap detail agenda dibuka, lalu angkanya diperbarui. */
   const buka = (a: AgendaTampil) => {
@@ -217,44 +111,11 @@ function BagianAgenda({ sasaran }: { sasaran?: string | null }) {
 
   return (
     <section aria-label="Agenda kegiatan">
-      <JudulSeksi
-        icon={<Icon name="calendar" className={ikon} />}
-        title="Agenda"
-        subtitle="Jadwal terdekat lebih dahulu"
-      />
-
-      <ul className="divide-y divide-black/[0.06] overflow-hidden rounded-2xl border border-black/[0.08] bg-white">
-        {items.map((a) => {
-          const { day, month } = tanggalKotak(a.date);
-          return (
-            <li key={a.id}>
-              <button
-                type="button"
-                onClick={() => buka(a)}
-                aria-label={`Lihat detail agenda: ${a.title}`}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left transition active:bg-cream-50"
-              >
-                <span className="w-10 shrink-0 border-r border-black/[0.06] pr-2 text-center">
-                  <span className="font-header block text-[15px] leading-none font-bold text-persis-800">{day}</span>
-                  <span className="mt-0.5 block text-[9.5px] font-semibold text-persis-900 uppercase">{month}</span>
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block line-clamp-2 text-[12.5px] leading-snug font-medium text-ink-900">
-                    {a.title}
-                  </span>
-                  <span className="mt-0.5 block line-clamp-1 text-[10.5px] text-persis-900">
-                    {a.time} · {a.place}
-                  </span>
-                </span>
-                <span className="flex shrink-0 items-center gap-1 text-[10.5px] text-persis-900">
-                  {tanggalPendek(a.date)}
-                  <Icon name="chevron-right" className="h-3.5 w-3.5" />
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      {terdekat ? <Button variant="ghost" onClick={() => buka(terdekat)} aria-label={`Agenda terdekat: ${terdekat.title}`} data-testid="kartu-agenda" className="card-line flex h-auto w-full items-center gap-3 p-3.5 text-left whitespace-normal">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-leaf-100 text-persis-800"><Icon name="calendar" className="h-5 w-5" /></span>
+        <span className="min-w-0 flex-1"><span className="block text-[8px] font-extrabold text-ink-400 uppercase">Agenda terdekat</span><span className="mt-1 block line-clamp-2 text-[12.5px] leading-snug font-extrabold text-ink-900">{terdekat.title}</span><span className="mt-1 block truncate text-[9.5px] text-ink-400">{tanggalPanjang(terdekat.date)} · {terdekat.time}</span></span>
+        <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full border-[5px] border-leaf-600 bg-surface text-center"><span><span className="block text-[15px] leading-none font-extrabold text-ink-900">{sisa === 0 ? "Hari" : sisa}</span><span className="block text-[7px] font-bold text-ink-400 uppercase">{sisa === 0 ? "ini" : "hari"}</span></span></span>
+      </Button> : null}
 
       <Popup
         open={pilih !== null}
@@ -292,17 +153,15 @@ export default function Beranda({
   const dataBerita = useBerita();
 
   return (
-    <main>
-      <Hero />
-      <div className="mx-auto w-full max-w-[620px] px-5">
+    <main className="mx-auto w-full max-w-[620px] px-5 pt-0">
+      <div className="space-y-6 pb-1">
+        <Hero onPilih={onPilihMenu} />
         <KartuStatistik />
-        <div className="space-y-7 pt-7 pb-7">
-          <GridMenu onSelect={onPilihMenu} />
-          <BagianPengumumanTerbaru sasaran={pengumumanBuka} />
-          <BagianTrending items={beritaTrending(dataBerita, 5)} total={terbitSaja(dataBerita).length} onOpen={onBukaBerita} />
-          <BagianPengumuman />
-          <BagianAgenda sasaran={agendaBuka} />
-        </div>
+        <BagianAgenda sasaran={agendaBuka} />
+        <GridMenu onSelect={onPilihMenu} />
+        <BagianPengumumanTerbaru sasaran={pengumumanBuka} />
+        <MomenKegiatan onBuka={() => onPilihMenu("galeri")} />
+        <BagianTrending items={beritaTrending(dataBerita, 4)} total={terbitSaja(dataBerita).length} onOpen={onBukaBerita} />
       </div>
     </main>
   );

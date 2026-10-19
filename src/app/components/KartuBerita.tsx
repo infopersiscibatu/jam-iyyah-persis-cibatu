@@ -24,22 +24,14 @@ export default function KartuBerita({ item, onOpen }: { item: ItemKartu; onOpen:
         e.preventDefault();
         onOpen();
       }}
-      className="flex items-stretch gap-3 rounded-2xl border border-black/[0.08] bg-white p-3 transition active:bg-cream-50"
+      className="flex items-stretch gap-3 rounded-[14px] border border-line bg-surface p-2.5 transition active:bg-mist"
     >
-      <div className="flex h-[118px] min-w-0 flex-1 flex-col">
-        <p className="text-[9.5px] font-bold tracking-[0.14em] text-gold-600 uppercase">{item.kategori}</p>
-        <h3 className="mt-1 line-clamp-2 text-[12.5px] leading-snug font-bold text-ink-900">{item.judul}</h3>
-        <p className="mt-1 line-clamp-2 text-justify text-[11px] leading-relaxed text-ink-600">{item.ringkasan}</p>
-        <p className="mt-auto flex items-center gap-1.5 pt-1.5 text-[10px] text-persis-900">
-          <span>{item.tanggalTeks}</span>
-          <span>·</span>
-          <span className="inline-flex items-center gap-1">
-            <Icon name={item.metaIkon === "jam" ? "clock" : "eye"} className="h-3 w-3 text-gold-600" />
-            {item.metaTeks}
-          </span>
-        </p>
+      <img src={item.gambar} alt="" loading="lazy" className="h-[70px] w-[94px] shrink-0 rounded-[10px] object-cover" />
+      <div className="min-w-0 flex-1">
+        <p className="text-[8px] font-extrabold text-gold-600 uppercase">{item.kategori}</p>
+        <h3 className="mt-1 line-clamp-2 text-[11.5px] leading-snug font-bold text-ink-900">{item.judul}</h3>
+        <p className="mt-1.5 flex items-center gap-1.5 text-[9px] text-ink-400"><span>{item.tanggalTeks}</span><span>·</span><span className="inline-flex items-center gap-1"><Icon name={item.metaIkon === "jam" ? "clock" : "eye"} className="h-3 w-3" />{item.metaTeks}</span></p>
       </div>
-      <img src={item.gambar} alt="" loading="lazy" className="h-[118px] w-[92px] shrink-0 rounded-xl object-cover" />
     </a>
   );
 }
@@ -64,7 +56,7 @@ export function KartuBacaJuga({ item, onOpen }: { item: ItemKartu; onOpen: () =>
 /** Daftar berita paling banyak dibaca (dipakai di beranda dan halaman berita). */
 export function BagianTrending({
   title = "Berita Trending",
-  subtitle = "Disusun dari jumlah pembaca terbanyak",
+  subtitle = "Paling banyak dibaca",
   items,
   total,
   onOpen,
@@ -83,7 +75,7 @@ export function BagianTrending({
         subtitle={subtitle}
         actionLabel={null}
       />
-      <ol className="divide-y divide-black/[0.06] overflow-hidden rounded-2xl border border-black/[0.08] bg-white">
+      <ol className="card-line divide-y divide-line overflow-hidden">
         {items.map((n, i) => (
           <li key={n.id}>
             <a
@@ -92,13 +84,12 @@ export function BagianTrending({
                 e.preventDefault();
                 onOpen(n);
               }}
-              className="flex items-start gap-3 px-4 py-3 transition active:bg-cream-50"
+              className="flex items-center gap-3 px-3.5 py-3 transition active:bg-mist"
             >
-              <span className="font-header w-4 shrink-0 pt-0.5 text-[12px] font-bold text-persis-900">{i + 1}</span>
-              <img src={n.image} alt="" loading="lazy" className="h-14 w-14 shrink-0 rounded-xl object-cover" />
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[10px] bg-stat-green text-[10px] font-extrabold text-persis-800">{String(i + 1).padStart(2, "0")}</span>
               <div className="min-w-0 flex-1">
-                <h3 className="line-clamp-2 text-[12.5px] leading-snug font-medium text-ink-900">{n.title}</h3>
-                <p className="mt-1 flex items-center gap-2 text-[10.5px] text-persis-900">
+                <h3 className="line-clamp-2 text-[11.5px] leading-snug font-semibold text-ink-900">{n.title}</h3>
+                <p className="mt-0.5 flex items-center gap-2 text-[9.5px] text-ink-400">
                   <span className="inline-flex items-center gap-1">
                     <Icon name="eye" className="h-3.5 w-3.5" />
                     {angkaRingkas(n.views)} dibaca
@@ -111,7 +102,7 @@ export function BagianTrending({
           </li>
         ))}
       </ol>
-      <p className="mt-2 text-[10.5px] text-persis-900">
+      <p className="mt-2 text-center text-[9.5px] text-ink-400">
         {items.length} teratas dari {total ?? items.length} berita
       </p>
     </section>
