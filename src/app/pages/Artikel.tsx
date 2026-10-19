@@ -40,9 +40,17 @@ export default function HalamanArtikel({ onBuka }: { onBuka: (slug: string) => v
   const utama = semua[0];
   const lain = semua.slice(1);
   const jumlahArtikel = terbitSajaArtikel(data).length;
-  const tersaring = kategori === "Semua" ? lain : lain.filter((a) => a.kategori === kategori);
+  /*
+   * Artikel utama sudah tampil di bagian atas. Bila artikel yang terbit baru satu,
+   * artikel itu tetap dipakai untuk daftar di bawah — halaman tidak boleh menulis
+   * "0 artikel" padahal artikelnya sedang tampil di atas.
+   */
+  const dasar = lain.length > 0 ? lain : semua;
+  const tersaring = kategori === "Semua" ? dasar : dasar.filter((a) => a.kategori === kategori);
   const daftar = tersaring.slice(0, tampil);
   const terpopuler = artikelTerpopuler(data, 5);
+  /* Artikel tersimpan yang belum diterbitkan — penyebab tersering halaman kosong. */
+  const belumTerbit = Math.max(0, data.artikel.length - jumlahArtikel);
 
   return (
     <main data-testid="artikel-page">
@@ -139,12 +147,20 @@ export default function HalamanArtikel({ onBuka }: { onBuka: (slug: string) => v
           <JudulSeksi
             icon={<Icon name="book-open" className={ikon} />}
             title={kategori === "Semua" ? "Artikel Terbaru" : `Kategori ${kategori}`}
-            subtitle={`${tersaring.length} artikel`}
+            subtitle={
+              kategori === "Semua" && tersaring.length !== jumlahArtikel
+                ? `${tersaring.length} dari ${jumlahArtikel} artikel`
+                : `${tersaring.length} artikel`
+            }
             actionLabel={null}
           />
           {daftar.length === 0 ? (
             <p className="rounded-2xl border border-black/[0.08] bg-white p-4 text-justify text-[12px] leading-relaxed text-ink-600">
-              Belum ada artikel lain pada kategori ini. Silakan pilih kategori lain atau buka artikel utama di atas.
+              {jumlahArtikel === 0
+                ? belumTerbit > 0
+                  ? `Belum ada artikel yang terbit. ${belumTerbit} artikel sudah tersimpan tetapi masih berstatus draf, jadi belum tampil di situs.`
+                  : "Belum ada artikel yang terbit. Artikel yang ditulis lewat panel admin akan tampil di sini setelah diterbitkan."
+                : "Belum ada artikel lain pada kategori ini. Silakan pilih kategori lain atau buka artikel utama di atas."}
             </p>
           ) : (
             <ul className="space-y-3">

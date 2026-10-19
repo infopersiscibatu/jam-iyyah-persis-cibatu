@@ -45,8 +45,17 @@ export default function HalamanBerita({
   const utama = beritaUtama(data);
   const lain = semua.filter((b) => b.id !== utama?.id);
   const jumlahBerita = terbitSaja(data).length;
-  const tersaring = kategori === "Semua" ? lain : lain.filter((b) => b.category === kategori);
+  /*
+   * Berita utama sudah tampil di bagian atas. Bila berita yang terbit baru satu,
+   * berita itu tetap dipakai untuk daftar di bawah — halaman tidak boleh menulis
+   * "0 berita" padahal beritanya sedang tampil di atas.
+   */
+  const dasar = lain.length > 0 ? lain : semua;
+  const tersaring = kategori === "Semua" ? dasar : dasar.filter((b) => b.category === kategori);
   const daftar = tersaring.slice(0, tampil);
+  /* Berita yang tersimpan tetapi belum diterbitkan — penyebab tersering halaman
+     terlihat kosong walau datanya sudah ada di panel admin. */
+  const belumTerbit = Math.max(0, data.berita.length - jumlahBerita);
 
   return (
     <main data-testid="berita-page">
@@ -140,12 +149,20 @@ export default function HalamanBerita({
           <JudulSeksi
             icon={<Icon name="newspaper" className={ikon} />}
             title={kategori === "Semua" ? "Berita Terbaru" : `Kategori ${kategori}`}
-            subtitle={`${tersaring.length} berita`}
+            subtitle={
+              kategori === "Semua" && tersaring.length !== jumlahBerita
+                ? `${tersaring.length} dari ${jumlahBerita} berita`
+                : `${tersaring.length} berita`
+            }
             actionLabel={null}
           />
           {daftar.length === 0 ? (
             <p className="rounded-2xl border border-black/[0.08] bg-white p-4 text-justify text-[12px] leading-relaxed text-ink-600">
-              Belum ada berita lain pada kategori ini. Silakan pilih kategori lain atau buka berita utama di atas.
+              {jumlahBerita === 0
+                ? belumTerbit > 0
+                  ? `Belum ada berita yang terbit. ${belumTerbit} berita sudah tersimpan tetapi masih berstatus draf, jadi belum tampil di situs.`
+                  : "Belum ada berita yang terbit. Berita yang ditulis lewat panel admin akan tampil di sini setelah diterbitkan."
+                : "Belum ada berita lain pada kategori ini. Silakan pilih kategori lain atau buka berita utama di atas."}
             </p>
           ) : (
             <ul className="space-y-3">

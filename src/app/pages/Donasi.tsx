@@ -68,7 +68,13 @@ export function HalamanDonasi({ onOpen }: { onOpen: (slug: string) => void }) {
   const mendesak = urutMendesak(daftar);
   const utama = mendesak[0];
   const lain = daftar.filter((p) => p.id !== utama?.id);
-  const tersaring = kategori === "Semua" ? lain : lain.filter((p) => p.kategori === kategori);
+  /*
+   * Program utama sudah tampil di bagian atas. Bila program yang aktif baru satu,
+   * program itu tetap dipakai untuk daftar di bawah — halaman tidak boleh menulis
+   * "0 program" padahal programnya sedang tampil di atas.
+   */
+  const dasar = lain.length > 0 ? lain : daftar;
+  const tersaring = kategori === "Semua" ? dasar : dasar.filter((p) => p.kategori === kategori);
   const ditampilkan = tersaring.slice(0, tampil);
   const progresUtama = utama ? progresProgram(utama) : null;
   const hariUtama = utama ? sisaHari(utama) : 0;
@@ -186,11 +192,17 @@ export function HalamanDonasi({ onOpen }: { onOpen: (slug: string) => void }) {
           <JudulSeksi
             icon={<Icon name="heart" className={ikon} />}
             title={kategori === "Semua" ? "Program Donasi" : `Kategori ${kategori}`}
-            subtitle={`${tersaring.length} program`}
+            subtitle={
+              kategori === "Semua" && tersaring.length !== daftar.length
+                ? `${tersaring.length} dari ${daftar.length} program`
+                : `${tersaring.length} program`
+            }
           />
           {ditampilkan.length === 0 ? (
             <p className="rounded-2xl border border-black/[0.08] bg-white p-4 text-justify text-[12px] leading-relaxed text-ink-600">
-              Belum ada program lain pada kategori ini. Silakan pilih kategori lain atau buka program utama di atas.
+              {daftar.length === 0
+                ? "Belum ada program donasi yang aktif. Program yang diaktifkan lewat panel ZIS akan tampil di sini."
+                : "Belum ada program lain pada kategori ini. Silakan pilih kategori lain atau buka program utama di atas."}
             </p>
           ) : (
             <ul className="space-y-3">
