@@ -9,16 +9,14 @@ export default function JudulSeksi({
   tone = "green",
   actionLabel = "Lihat semua",
   judulId,
-  onAction,
 }: {
   title: string;
   subtitle?: string;
   eyebrow?: string;
   icon?: ReactNode;
-  tone?: "green" | "gold" | "brand" | string;
+  tone?: "green" | "gold";
   actionLabel?: string | null;
   judulId?: string;
-  onAction?: () => void;
 }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
@@ -40,29 +38,16 @@ export default function JudulSeksi({
           ) : null}
           <h2
             id={judulId}
-            className={`font-header truncate text-[14.5px] font-extrabold tracking-[-0.01em] text-ink-900 ${
-              eyebrow ? "mt-0.5" : ""
-            }`}
+            className={`font-header truncate text-[15px] font-bold tracking-[-0.01em] text-ink-900 ${eyebrow ? "mt-1" : ""}`}
           >
             {title}
           </h2>
-          {subtitle ? (
-            <p className="truncate text-[11px] font-medium text-ink-500">{subtitle}</p>
-          ) : null}
+          {subtitle ? <p className="truncate text-[11.5px] text-persis-900">{subtitle}</p> : null}
         </div>
       </div>
 
-      {onAction ? (
-        <button
-          type="button"
-          onClick={onAction}
-          className="inline-flex shrink-0 items-center gap-1 text-[11px] font-bold text-persis-900 transition hover:underline active:scale-95"
-        >
-          {actionLabel}
-          <Icon name="chevron-right" className="h-3 w-3 text-gold-600" />
-        </button>
-      ) : actionLabel ? (
-        <span className="inline-flex shrink-0 items-center gap-0.5 px-1 py-1 text-[11px] font-semibold text-persis-900">
+      {actionLabel ? (
+        <span className="inline-flex shrink-0 items-center gap-0.5 px-1 py-1 text-[11.5px] font-semibold text-persis-900">
           {actionLabel}
           <Icon name="chevron-right" className="h-3.5 w-3.5 text-gold-600" />
         </span>
