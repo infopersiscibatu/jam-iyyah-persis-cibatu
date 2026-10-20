@@ -1,27 +1,8 @@
 
 @theme {
   --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
-  --font-header: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-header: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  --color-surface: oklch(1 0 0);
-  --color-line: oklch(0.95 0.005 155);
-  --color-mist: oklch(0.97 0.004 155);
-  --color-ink-700: oklch(0.44 0.018 155);
-  --color-leaf-100: oklch(0.95 0.035 150);
-  --color-leaf-600: oklch(0.57 0.14 150);
-  --color-stat-green: oklch(0.96 0.025 155);
-  --color-stat-green-ink: oklch(0.39 0.09 155);
-  --color-stat-green-label: oklch(0.58 0.07 155);
-  --color-stat-blue: oklch(0.96 0.02 265);
-  --color-stat-blue-ink: oklch(0.46 0.12 265);
-  --color-stat-blue-label: oklch(0.61 0.08 265);
-  --color-stat-gold: oklch(0.97 0.028 80);
-  --color-stat-gold-ink: oklch(0.55 0.10 75);
-  --color-stat-gold-label: oklch(0.67 0.08 75);
-  --color-greeting-night: oklch(0.94 0.025 270);
-  --color-greeting-night-ink: oklch(0.5 0.1 270);
-  --shadow-tile: 0 6px 16px -14px color-mix(in oklab, var(--color-ink-900) 45%, transparent);
-  --shadow-nav: 0 22px 44px -18px color-mix(in oklab, var(--color-persis-950) 45%, transparent);
   --color-persis-950: #07291a;
   --color-persis-900: #0e4b2b;
   --color-persis-800: #14603a;
@@ -33,7 +14,7 @@
   --color-gold-400: #ddb94a;
   --color-gold-300: #ecd27f;
 
-  --color-page: oklch(1 0 0);
+  --color-page: #f8faf8;
   --color-cream-50: #fffdf8;
   --color-cream-100: #faf6ec;
   --color-cream-200: #f2ead8;
@@ -42,9 +23,9 @@
   --color-pastelgold: #faf1da;
   --color-pastelrose: #f7e6e6;
 
-  --color-ink-900: oklch(0.20 0.015 155);
-  --color-ink-600: oklch(0.56 0.018 155);
-  --color-ink-400: oklch(0.71 0.015 155);
+  --color-ink-900: #10231a;
+  --color-ink-600: #55655d;
+  --color-ink-400: #8b968f;
 }
 
 html {
@@ -225,22 +206,3 @@ body {
 .isi-kaya table { width: 100%; border-collapse: collapse; font-size: 0.95em; display: block; overflow-x: auto; }
 .isi-kaya td, .isi-kaya th { border: 1px solid rgba(0,0,0,0.12); padding: 0.35rem 0.5rem; }
 .isi-kaya hr { border-color: rgba(0,0,0,0.1); }
-
-/* Presentation from the supplied ZIP; shared by public pages only. */
-.card-line { background: var(--color-surface); border: 1px solid var(--color-line); border-radius: 18px; }
-.tile-shadow { box-shadow: var(--shadow-tile); }
-.public-shell { letter-spacing: 0; }
-.public-shell .card-elev { border-color: var(--color-line); box-shadow: var(--shadow-tile); }
-.public-shell .field-input { background: var(--color-mist); border-color: var(--color-line); border-radius: 12px; }
-.public-shell .field-label { color: var(--color-ink-900); }
-.public-shell .card-accent::before { background: var(--color-gold-400); }
-.public-shell [class*="tracking-"] { letter-spacing: 0; }
-.float-nav { padding-bottom: max(0.9rem, env(safe-area-inset-bottom)); }
-.float-nav-list { box-shadow: var(--shadow-nav); }
-@keyframes ikonApung { 0%,100% { transform: translateY(-1px) rotate(-3deg); } 50% { transform: translateY(1.5px) rotate(3deg); } }
-@keyframes ikonPutar { to { transform: rotate(360deg); } }
-@keyframes ikonBulan { 0%,100% { transform: rotate(-8deg); opacity: 1; } 50% { transform: rotate(8deg); opacity: 0.65; } }
-.ikon-pagi, .ikon-sore { animation: ikonApung 3.4s ease-in-out infinite; }
-.ikon-siang { animation: ikonPutar 14s linear infinite; }
-.ikon-malam { animation: ikonBulan 4.2s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .ikon-pagi,.ikon-sore,.ikon-siang,.ikon-malam { animation: none; } }

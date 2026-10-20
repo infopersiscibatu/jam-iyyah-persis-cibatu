@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { Icon } from "./Icons";
-import { Button } from "@/components/ui/button";
 
 export default function JudulSeksi({
   title,
@@ -10,7 +9,6 @@ export default function JudulSeksi({
   tone = "green",
   actionLabel = "Lihat semua",
   judulId,
-  onAction,
 }: {
   title: string;
   subtitle?: string;
@@ -19,12 +17,11 @@ export default function JudulSeksi({
   tone?: "green" | "gold";
   actionLabel?: string | null;
   judulId?: string;
-  onAction?: () => void;
 }) {
   return (
-    <div className="mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+    <div className="mb-3 flex items-center justify-between gap-3">
       <div className="flex min-w-0 items-center gap-2.5">
-        {false && icon ? (
+        {icon ? (
           <span
             className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${
               tone === "gold"
@@ -41,19 +38,19 @@ export default function JudulSeksi({
           ) : null}
           <h2
             id={judulId}
-            className={`font-header truncate text-[14.5px] font-extrabold text-ink-900 ${eyebrow ? "mt-1" : ""}`}
+            className={`font-header truncate text-[15px] font-bold tracking-[-0.01em] text-ink-900 ${eyebrow ? "mt-1" : ""}`}
           >
             {title}
           </h2>
-          {subtitle ? <p className="mt-0.5 truncate text-[10px] text-ink-400">{subtitle}</p> : null}
+          {subtitle ? <p className="truncate text-[11.5px] text-persis-900">{subtitle}</p> : null}
         </div>
       </div>
 
-      {actionLabel && onAction ? (
-        <Button variant="ghost" onClick={onAction} className="h-auto shrink-0 gap-0.5 px-1 py-1 text-[10px] font-semibold text-persis-800">
+      {actionLabel ? (
+        <span className="inline-flex shrink-0 items-center gap-0.5 px-1 py-1 text-[11.5px] font-semibold text-persis-900">
           {actionLabel}
           <Icon name="chevron-right" className="h-3.5 w-3.5 text-gold-600" />
-        </Button>
+        </span>
       ) : null}
     </div>
   );
