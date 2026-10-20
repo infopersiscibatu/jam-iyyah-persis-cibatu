@@ -29,7 +29,7 @@ export default function BarMerek({
   onBeranda: () => void;
   onBukaNotif?: () => void;
 }) {
-  const { data: profil } = useProfil();
+  const { identitas } = useProfil();
   const [waktu, setWaktu] = useState<Waktu>(hitungWaktu);
 
   useEffect(() => {
@@ -48,8 +48,8 @@ export default function BarMerek({
         className="grid h-10 w-10 shrink-0 place-items-center rounded-[13px] bg-white ring-1 ring-line shadow-xs transition active:scale-95"
       >
         <img
-          src={profil?.logo || "/logo-persis.png"}
-          alt="Logo PERSIS Cibatu"
+          src={identitas?.logo || "/logo-persis.png"}
+          alt={identitas?.nama || "Logo PERSIS Cibatu"}
           className="h-8 w-8 rounded-full object-contain"
           draggable={false}
         />
@@ -68,7 +68,7 @@ export default function BarMerek({
           </span>
         </div>
         <p className="mt-0.5 truncate text-[10px] leading-tight font-semibold text-ink-400">
-          {profil?.namaSekolah || "Jama'ah Persis Cibatu"}
+          {identitas?.namaLengkap || identitas?.nama || "Jama'ah Persis Cibatu"}
         </p>
       </div>
 
