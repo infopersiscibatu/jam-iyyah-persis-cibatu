@@ -1,5 +1,5 @@
 # Roadmap migrasi
-- [ ] Redesain halaman publik mengikuti ZIP, mempertahankan delapan akses cepat dan seluruh fungsi yang ada
+- [x] Redesain beranda, berita, artikel mengikuti ZIP (SPMB tetap memakai formulir asli)
 - [x] Siapkan supabase-mandiri.sql dengan skema lengkap dan tanpa data contoh
 - [x] Kompres semua unggahan gambar dengan sasaran 30–50 KB dan pertahankan ketajaman semaksimal mungkin
 - [x] Percepat pemuatan data dan penyegaran perubahan di halaman publik

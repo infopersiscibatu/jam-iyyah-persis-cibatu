@@ -102,7 +102,7 @@ export default function DaftarKonten({
             type="button"
             onClick={() => onBuka(utama.slug)}
             aria-label={`Baca ${satuan} utama: ${utama.judul}`}
-            className="relative block h-[190px] w-full overflow-hidden rounded-[16px] text-left shadow-[0_18px_34px_-24px_hsl(var(--primary)/0.55)]"
+            className="relative block h-[190px] w-full overflow-hidden rounded-[16px] text-left shadow-lg"
           >
             <img src={utama.gambar} alt={utama.judul} className="absolute inset-0 h-full w-full object-cover" />
             <span className="absolute inset-0 bg-gradient-to-t from-persis-950/90 via-persis-950/40 to-transparent" />
