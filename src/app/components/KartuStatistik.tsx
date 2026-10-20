@@ -8,10 +8,9 @@ const tema = [
 
 export default function KartuStatistik() {
   const data = useJenjang();
-
-  const totalJenjang = data.daftar.length || 5;
-  const totalSantri = data.daftar.reduce((acc, j) => acc + (j.statistik?.totalSantri || 0), 0) || 1240;
-  const totalPengajar = data.daftar.reduce((acc, j) => acc + (j.statistik?.totalPengajar || 0), 0) || 86;
+const totalJenjang = data.jenjang.length || 5;
+const totalSantri = data.unit.reduce((acc, u) => acc + (u.siswa || 0), 0) || 1240;
+const totalPengajar = data.unit.reduce((acc, u) => acc + ((u.guru || 0) + (u.staf || 0)), 0) || 86;
 
   const stats = [
     { id: "jenjang", nilai: totalJenjang, label: "Jenjang", sub: "Pendidikan" },
