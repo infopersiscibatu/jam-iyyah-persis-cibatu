@@ -249,8 +249,8 @@ export default function App() {
       <PopupInstall />
 
       {/* Panel admin tampil tanpa kepala situs pengunjung. */}
-      {panel ? null : (
-        <Header
+      {panel || tab === "beranda" ? null : (
+         <Header
           scrolled={scrolled}
           onBeranda={() => pindah("beranda")}
           onBukaPost={(n: Notifikasi) => bukaTautan(n.tautan)}
