@@ -169,6 +169,16 @@ export default function App() {
     return () => window.removeEventListener("scroll", pantau);
   }, []);
 
+  /* Warna bilah status HP (theme-color) mengikuti latar halaman yang dibuka:
+     beranda berlatar putih, halaman lain tetap hijau seperti kepala situsnya.
+     Selama layar pembuka (hijau) masih tampil, warnanya tidak diubah. */
+  useEffect(() => {
+    if (memuat) return;
+    const bilah = document.querySelector('meta[name="theme-color"]');
+    if (!bilah) return;
+    bilah.setAttribute("content", tab === "beranda" ? "#ffffff" : "#0e4b2b");
+  }, [tab, memuat]);
+
   /* Bagian pertama riwayat disamakan dengan alamat awal, lalu setiap
      perpindahan halaman menambah satu riwayat agar tombol kembali di HP
      mengembalikan ke halaman sebelumnya. */
