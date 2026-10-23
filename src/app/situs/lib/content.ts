@@ -124,6 +124,28 @@ export let berita: Berita[] = [];
 export const beritaTrending = (n = 5) => [...berita].sort((a, b) => b.views - a.views).slice(0, n);
 
 /* ------------------------------------------------------------------ */
+/* Galeri (dokumentasi kegiatan)                                      */
+/* ------------------------------------------------------------------ */
+
+/** Satu foto dari album galeri, dipakai bagian "Momen Kegiatan" di beranda. */
+export type FotoGaleri = {
+  id: string;
+  judul: string;
+  /** Alamat gambar foto. */
+  gambar: string;
+  /** Nama album/kategori foto (tampil kecil di atas judul). */
+  album: string;
+  /** Tanggal ISO (YYYY-MM-DD). */
+  tanggal: string;
+};
+
+/** Foto galeri dari database, sudah urut dari yang terbaru (urutan API). */
+export let galeri: FotoGaleri[] = [];
+
+/** Foto galeri terbaru untuk "Momen Kegiatan" — bukan lagi dari berita. */
+export const momenGaleri = (n = 6) => galeri.filter((f) => f.gambar).slice(0, n);
+
+/* ------------------------------------------------------------------ */
 /* Pengumuman                                                          */
 /* ------------------------------------------------------------------ */
 
@@ -221,6 +243,7 @@ export type DataSitus = {
   navigasi?: NavBawah[];
   sosial?: TautanSosial[];
   berita?: Berita[];
+  galeri?: FotoGaleri[];
   pengumuman?: Pengumuman[];
   agenda?: Agenda[];
 };
@@ -238,6 +261,7 @@ export function terapkanDataSitus(data: DataSitus): void {
   if (data.navigasi?.length) navigasi = data.navigasi;
   if (data.sosial?.length) sosial = data.sosial;
   if (data.berita?.length) berita = data.berita;
+  if (data.galeri?.length) galeri = data.galeri;
   if (data.pengumuman?.length) pengumuman = data.pengumuman;
   if (data.agenda?.length) agenda = data.agenda;
   notifikasi = susunNotifikasi();
