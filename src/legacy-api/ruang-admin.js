@@ -334,7 +334,7 @@ const __ekspor = function pasangRuteAdmin(app, { tanya }) {
       await tanya(
         `insert into jenjang (id, slug, singkatan, nama, tagline, rentang, pimpinan_label, jumlah, satuan, lokasi,
                               tone, intro, fasilitas, istilah, urutan, hitung_jenjang, aktif)
-         values ($1, $2, $3, $4, $5, '', '', '0', 'siswa', '', 'mint', '', '[]'::jsonb, $6::jsonb, $7, true, true)`,
+         values ($1, $2, $3, $4, $5, '', '', '0', 'siswa', '', 'mint', '', '[]'::jsonb, $6::jsonb, $7, $8, true)`,
         [
           `jg-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
           slug,
@@ -343,6 +343,8 @@ const __ekspor = function pasangRuteAdmin(app, { tanya }) {
           tagline ?? "",
           JSON.stringify({ unit: "unit", santri: "siswa", pendidik: "pendidik", rombel: "rombongan belajar" }),
           urutan,
+          /* Jenjang baru ikut dihitung kecuali admin mematikannya (mis. MDT). */
+          b.hitungJenjang !== false,
         ],
       );
     });
@@ -365,6 +367,12 @@ const __ekspor = function pasangRuteAdmin(app, { tanya }) {
     if ("tagline" in b) {
       nilai.push(rapikan(b.tagline, BATAS_PENDEK));
       setel.push(`tagline = $${nilai.length}`);
+    }
+    /* Pilihan "masuk hitungan jenjang": MDT dan sejenisnya tidak dihitung
+       pada angka Jenjang Pendidikan di beranda, tetapi halamannya tetap ada. */
+    if ("hitungJenjang" in b) {
+      nilai.push(b.hitungJenjang !== false);
+      setel.push(`hitung_jenjang = $${nilai.length}`);
     }
     if ("gambar_url" in b) {
       nilai.push(rapikan(b.gambar_url, 500));
