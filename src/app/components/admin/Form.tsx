@@ -42,6 +42,7 @@ export function Kolom({
   placeholder,
   petunjuk,
   testid,
+  maks,
 }: {
   label: string;
   nilai: string;
@@ -49,6 +50,8 @@ export function Kolom({
   placeholder?: string;
   petunjuk?: string;
   testid?: string;
+  /** Batas jumlah huruf agar teks tetap rapi di layar HP. */
+  maks?: number;
 }) {
   return (
     <label className="block">
@@ -59,6 +62,7 @@ export function Kolom({
         className={isian}
         value={nilai}
         placeholder={placeholder}
+        maxLength={maks}
         onChange={(e) => onUbah(e.target.value)}
       />
       {petunjuk ? <span className="mt-1.5 block text-[10px] leading-relaxed text-ink-400">{petunjuk}</span> : null}
