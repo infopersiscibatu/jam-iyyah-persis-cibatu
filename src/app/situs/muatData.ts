@@ -4,7 +4,7 @@ import { terapkanDataSitus, type DataSitus } from "./lib/content";
  * Mengisi beranda dari database.
  *
  * Isi diambil langsung dari API yang sudah dipakai situs ini
- * (/api/profil, /api/beranda, /api/berita, /api/pengumuman, /api/agenda).
+ * (/api/profil, /api/beranda, /api/berita, /api/galeri, /api/pengumuman, /api/agenda).
  * Sengaja tidak lewat pemuat aplikasi lama (src/app/lib/*) karena pemuat itu
  * memakai daftar contoh sebagai cadangan ketika database masih kosong —
  * di beranda ini tidak boleh ada isi karangan.
@@ -53,6 +53,22 @@ type BarisPengumuman = {
   disematkan?: boolean;
   dibaca?: number | null;
   terbit?: boolean;
+};
+
+/** Satu foto dari /api/galeri (tabel galeri_foto + nama albumnya). */
+type BarisGaleri = {
+  id?: string;
+  albumId?: string | null;
+  kategori?: string | null;
+  judul?: string;
+  gambarUrl?: string | null;
+  tanggal?: string | null;
+  aktif?: boolean | null;
+};
+
+type JawabanGaleri = {
+  foto?: BarisGaleri[] | null;
+  kategori?: { id?: string; nama?: string | null; aktif?: boolean | null }[] | null;
 };
 
 type BarisAgenda = {
@@ -115,10 +131,11 @@ function simpanData(data: DataSitus) {
 /* ----------------------------------- Pemuatan ----------------------------------- */
 
 export async function muatDataSitus(): Promise<void> {
-  const [profil, beranda, berita, pengumuman, agenda] = await Promise.all([
+  const [profil, beranda, berita, galeri, pengumuman, agenda] = await Promise.all([
     ambil<JawabanProfil>("/api/profil"),
     ambil<JawabanBeranda>("/api/beranda"),
     ambil<{ berita?: BarisBerita[] | null }>("/api/berita"),
+    ambil<JawabanGaleri>("/api/galeri"),
     ambil<{ pengumuman?: BarisPengumuman[] | null }>("/api/pengumuman"),
     ambil<{ agenda?: BarisAgenda[] | null }>("/api/agenda"),
   ]);
@@ -236,6 +253,26 @@ export async function muatDataSitus(): Promise<void> {
       author: huruf(b.penulis),
       excerpt: huruf(b.ringkasan),
       detail: paragraf(b.isi),
+    }));
+  }
+
+  /* ---------------------------------- Galeri ---------------------------------- */
+  /* Momen kegiatan di beranda diambil dari album galeri, bukan dari berita. */
+  const namaAlbum = new Map(
+    (galeri?.kategori ?? [])
+      .filter((k) => k && huruf(k.id))
+      .map((k) => [huruf(k.id), huruf(k.nama).trim()]),
+  );
+  const barisGaleri = (galeri?.foto ?? []).filter(
+    (f) => f && f.aktif !== false && huruf(f.judul) && huruf(f.gambarUrl),
+  );
+  if (barisGaleri.length) {
+    data.galeri = barisGaleri.slice(0, 12).map((f, i) => ({
+      id: huruf(f.id) || `gl-${i + 1}`,
+      judul: huruf(f.judul),
+      gambar: huruf(f.gambarUrl),
+      album: huruf(f.kategori).trim() || namaAlbum.get(huruf(f.albumId)) || "Kegiatan",
+      tanggal: huruf(f.tanggal),
     }));
   }
 
