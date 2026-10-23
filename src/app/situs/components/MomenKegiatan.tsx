@@ -1,15 +1,19 @@
-import { berita } from "../lib/content";
+import { momenGaleri } from "../lib/content";
 import type { FotoTampil } from "./PenampilFoto";
 import JudulSeksi from "./JudulSeksi";
 
-/** Foto momen kegiatan yang tampil di beranda (diambil dari berita terbaru). */
+/**
+ * Foto momen kegiatan yang tampil di beranda, diambil dari galeri (album foto
+ * kegiatan yang diisi lewat panel admin) — bukan dari berita. Urutannya sudah
+ * dari yang terbaru, mengikuti urutan /api/galeri.
+ */
 export function momenFoto(): FotoTampil[] {
-  return berita.slice(0, 4).map((b) => ({
-    id: b.id,
-    gambar: b.image,
-    judul: b.title,
-    album: b.category,
-    tanggal: b.date,
+  return momenGaleri(6).map((f) => ({
+    id: f.id,
+    gambar: f.gambar,
+    judul: f.judul,
+    album: f.album,
+    tanggal: f.tanggal,
   }));
 }
 
