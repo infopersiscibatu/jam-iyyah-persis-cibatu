@@ -244,7 +244,7 @@ export default function App() {
             : null;
 
   return (
-    <div className={`min-h-dvh bg-page ${panel ? "" : "pb-[64px]"}`}>
+    <div className={`min-h-dvh bg-page ${panel ? "" : tab === "beranda" ? "pb-[96px]" : "pb-[64px]"}`}>
       <DialogIzinNotifikasi />
       <PopupInstall />
 
@@ -329,7 +329,7 @@ export default function App() {
           onBeranda={() => pindah("beranda")}
         />
       ) : (
-        <BottomNav active={tabAktif} onChange={pindah} />
+        <BottomNav active={tabAktif} onChange={pindah} melayang={tab === "beranda"} />
       )}
 
       {memuat ? <LayarMuat /> : null}
