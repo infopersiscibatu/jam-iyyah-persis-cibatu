@@ -263,11 +263,9 @@ export default function App() {
 
       {tab === "beranda" ? (
         <Beranda
-          onPilihMenu={pindah}
-          onBukaBerita={(b: Berita) => pindah("berita-detail", b.slug)}
-          pengumumanBuka={slug?.startsWith("pengumuman:") ? slug.slice("pengumuman:".length) : null}
-          agendaBuka={slug?.startsWith("agenda:") ? slug.slice("agenda:".length) : null}
-        />
+         onPilihMenu={(halaman) => pindah(halaman)}
+         onBukaBerita={(b) => pindah("berita-detail", b.slug)}
+         />
       ) : null}
       {tab === "berita-detail" && slug ? (
         <HalamanBeritaDetail
