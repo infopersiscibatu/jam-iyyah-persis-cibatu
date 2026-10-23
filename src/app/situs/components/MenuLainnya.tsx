@@ -92,7 +92,7 @@ export default function MenuLainnya({
                     <span className="block truncate text-[11.5px] leading-tight font-extrabold text-ink-900">
                       {m.label}
                     </span>
-                    <span className="mt-0.5 block truncate text-[9px] text-ink-400">{m.sub}</span>
+                    {m.sub ? <span className="mt-0.5 block truncate text-[9px] text-ink-400">{m.sub}</span> : null}
                   </span>
                 </button>
               </li>

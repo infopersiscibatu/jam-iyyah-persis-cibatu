@@ -44,7 +44,11 @@ export default function StatusLayanan({
                 <Icon name={k.ikon} className="h-3.5 w-3.5" />
               </span>
             </span>
-            <span className="mt-3 block text-[8.5px] font-medium text-white/85">{k.sub}</span>
+            {k.sub ? (
+              <span className="mt-3 line-clamp-2 block text-[8.5px] leading-snug font-medium text-white/85">
+                {k.sub}
+              </span>
+            ) : null}
           </button>
         ))}
       </div>
