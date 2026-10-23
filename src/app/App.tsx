@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import BottomNav, { BottomNavWali, type TabId, type TabWali, type TabWaliIsi } from "./components/BottomNav";
 import DialogIzinNotifikasi from "./components/DialogIzinNotifikasi";
-import PopupInstall from "./components/PopupInstall";
 import Header from "./components/Header";
 import Beranda from "./pages/Beranda";
 import HalamanArtikel from "./pages/Artikel";
@@ -256,7 +255,6 @@ export default function App() {
   return (
     <div className={`min-h-dvh bg-page ${panel ? "" : tab === "beranda" ? "pb-[96px]" : "pb-[64px]"}`}>
       <DialogIzinNotifikasi />
-      <PopupInstall />
 
       {/* Panel admin tampil tanpa kepala situs pengunjung. */}
       {panel || tab === "beranda" ? null : (
