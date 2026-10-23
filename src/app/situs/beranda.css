@@ -1,1 +1,180 @@
+/*
+ * Gaya tambahan untuk beranda dengan desain baru (mengikuti desain situs PERSIS
+ * Cibatu versi mobile). Berkas ini hanya menambah, tidak mengubah warna yang
+ * sudah ada di src/app/index.css, sehingga halaman lain tetap bergaya lama.
+ *
+ * Cara pakai: tambahkan satu baris berikut di src/styles.css, tepat di bawah
+ * @import "./app/index.css";
+ *
+ *   @import "./app/situs/beranda.css";
+ */
 
+@theme {
+  /* Hijau daun muda untuk penanda aktif dan latar lembut. */
+  --color-leaf-50: #f2f9f4;
+  --color-leaf-100: #e3f6e7;
+  --color-leaf-200: #c9e8d3;
+  --color-leaf-500: #24a35c;
+  --color-leaf-600: #1b8f4f;
+  --color-leaf-700: #157a44;
+
+  /* Abu lembut untuk latar halaman dan garis kartu. */
+  --color-mist: #f4f6f4;
+  --color-line: #ebeeec;
+  --color-ink-700: #3f4c45;
+
+  /* Warna pastel untuk lencana dan sorotan angka. */
+  --color-pastel-green: #e4f6e8;
+  --color-pastel-blue: #e7effc;
+  --color-pastel-lilac: #eee7ff;
+  --color-pastel-cream: #fdf3e2;
+  --color-pastelsage: #eaf2e9;
+}
+
+/* Pembungkus beranda: huruf judul mengikuti desain baru, latar putih bersih. */
+.beranda-situs {
+  --font-header: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  background: #fff;
+  min-height: 100dvh;
+}
+
+/* Kartu bergaris tipis: dipakai daftar pengumuman, berita, dan agenda. */
+.card-line {
+  border: 1px solid var(--color-line);
+  background: #fff;
+  border-radius: 18px;
+}
+
+/* Kartu dengan bayangan sangat halus. */
+.card-soft {
+  border: 1px solid var(--color-line);
+  background: #fff;
+  box-shadow:
+    0 1px 2px #11181408,
+    0 12px 26px -24px #11181466;
+}
+
+.tile-shadow {
+  box-shadow: 0 6px 16px -14px #11181473;
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Gulir mendatar pada sorotan (carousel) tanpa bilah gulir bawaan. */
+@keyframes fadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: 0.22s ease-out both fadeIn;
+}
+
+/* Panel notifikasi turun dari atas layar. */
+@keyframes popupTurun {
+  0% {
+    opacity: 0;
+    transform: translateY(-22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.panel-atas {
+  animation: 0.26s cubic-bezier(0.22, 1, 0.36, 1) both popupTurun;
+}
+
+/* Jendela rincian naik dari bawah. */
+@keyframes popupUp {
+  0% {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.popup-panel {
+  animation: 0.24s ease-out both popupUp;
+}
+
+/* Ikon sapaan waktu: pagi, siang, sore, malam. */
+@keyframes ikonApung {
+  0%,
+  to {
+    transform: translateY(-1px) rotate(-3deg);
+  }
+  50% {
+    transform: translateY(1.5px) rotate(3deg);
+  }
+}
+
+@keyframes ikonPutar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes ikonTerbenam {
+  0%,
+  to {
+    transform: translateY(-1.5px);
+  }
+  50% {
+    transform: translateY(1.5px);
+  }
+}
+
+@keyframes ikonBulan {
+  0%,
+  to {
+    opacity: 1;
+    transform: rotate(-8deg) scale(1);
+  }
+  50% {
+    opacity: 0.65;
+    transform: rotate(8deg) scale(0.94);
+  }
+}
+
+.ikon-pagi {
+  animation: 3.4s ease-in-out infinite ikonApung;
+}
+.ikon-siang {
+  animation: 14s linear infinite ikonPutar;
+}
+.ikon-sore {
+  animation: 3.8s ease-in-out infinite ikonTerbenam;
+}
+.ikon-malam {
+  animation: 4.2s ease-in-out infinite ikonBulan;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in,
+  .panel-atas,
+  .popup-panel,
+  .ikon-pagi,
+  .ikon-siang,
+  .ikon-sore,
+  .ikon-malam {
+    animation: none;
+  }
+}
