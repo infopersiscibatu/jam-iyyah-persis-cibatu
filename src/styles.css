@@ -2,6 +2,7 @@
 @source "../src";
 @import "tw-animate-css";
 @import "./app/index.css";
+@import "./app/situs/beranda.css";
 
 @custom-variant dark (&:is(.dark *));
 
