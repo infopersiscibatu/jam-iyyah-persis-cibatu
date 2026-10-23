@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Icon } from "./Icons";
+import { BlokIsi } from "../../components/IsiKaya";
 
 /** Jendela bawah untuk membaca detail pengumuman dan agenda di beranda. */
 export default function Popup({
@@ -71,14 +72,13 @@ export default function Popup({
         <div className="min-h-0 flex-1 overflow-y-auto px-5 pt-3.5 pb-5">
           <div className="space-y-3 border-t border-line pt-3.5">
             {detail.map((par, i) => (
-              <p
+              <BlokIsi
                 key={i}
+                teks={par}
                 className={`text-justify leading-relaxed ${
                   i === 0 ? "text-[12.5px] font-medium text-ink-900" : "text-[12px] text-ink-600"
                 }`}
-              >
-                {par}
-              </p>
+              />
             ))}
           </div>
         </div>
