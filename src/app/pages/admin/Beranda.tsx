@@ -440,7 +440,17 @@ export function Carousel() {
 
 /* ------------------------------ susunan grid menu ------------------------------ */
 
-type BarisMenu = { id?: string; label: string; halaman: string; ikon: string; aktif: boolean };
+type BarisMenu = {
+  id?: string;
+  label: string;
+  keterangan: string;
+  halaman: string;
+  ikon: string;
+  aktif: boolean;
+};
+
+/** Panjang caption kartu akses cepat; cukup satu baris di layar HP. */
+const MAKS_CAPTION_MENU = 60;
 
 export function SusunanGridMenu() {
   const data = useBeranda();
@@ -454,7 +464,14 @@ export function SusunanGridMenu() {
       setBaris(
         [...data.gridMenu]
           .sort((a, b) => a.urutan - b.urutan)
-          .map((m) => ({ id: m.id, label: m.label, halaman: m.halaman, ikon: m.ikon, aktif: m.aktif })),
+          .map((m) => ({
+            id: m.id,
+            label: m.label,
+            keterangan: m.keterangan ?? "",
+            halaman: m.halaman,
+            ikon: m.ikon,
+            aktif: m.aktif,
+          })),
       );
       setTerisi(true);
     }
@@ -476,7 +493,13 @@ export function SusunanGridMenu() {
         hasil.push(b);
         continue;
       }
-      const muatan = { label: b.label.trim(), halaman: b.halaman, ikon: b.ikon, aktif: b.aktif };
+      const muatan = {
+        label: b.label.trim(),
+        keterangan: b.keterangan.trim(),
+        halaman: b.halaman,
+        ikon: b.ikon,
+        aktif: b.aktif,
+      };
       if (b.id) {
         await ubahGridMenu(b.id, muatan);
         urut.push(b.id);
@@ -580,6 +603,15 @@ export function SusunanGridMenu() {
                 onUbah={(v) => isi(i, { label: v })}
                 placeholder="Profil"
               />
+              <Kolom
+                testid={`grid-menu-keterangan-${i}`}
+                label="Caption kartu"
+                nilai={b.keterangan}
+                onUbah={(v) => isi(i, { keterangan: v })}
+                placeholder="Sejarah, visi, dan pengurus"
+                petunjuk="Teks kecil di bawah nama menu pada kartu Akses Cepat di beranda. Boleh dikosongkan."
+                maks={MAKS_CAPTION_MENU}
+              />
               <Pilih
                 testid={`grid-menu-halaman-${i}`}
                 label="Halaman tujuan"
@@ -604,7 +636,7 @@ export function SusunanGridMenu() {
         type="button"
         data-testid="tambah-grid-menu"
         onClick={() => {
-          setBaris((s) => [...s, { label: "", halaman: "", ikon: "info", aktif: true }]);
+          setBaris((s) => [...s, { label: "", keterangan: "", halaman: "", ikon: "info", aktif: true }]);
           setKotor(true);
         }}
         className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-persis-900/25 px-4 py-2.5 text-[11px] font-semibold text-persis-900 transition active:scale-[0.98]"
@@ -614,8 +646,9 @@ export function SusunanGridMenu() {
       </button>
 
       <p className="mt-4 text-justify text-[10.5px] leading-relaxed text-ink-400">
-        Susunan tampil sebagai empat kolom. Jumlah menu yang bukan kelipatan empat tetap tersusun rapi — baris terakhir
-        terisi dari kiri.
+        Empat menu pertama tampil sebagai kartu Akses Cepat berwarna di beranda, selebihnya masuk ke panel “Lihat
+        semua”. Caption di bawah nama kartu diambil dari isian Caption kartu — kosongkan bila kartunya cukup berisi
+        nama saja.
       </p>
       <div className="mt-3.5">
         <TombolSimpan
