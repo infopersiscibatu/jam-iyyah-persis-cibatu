@@ -3,8 +3,70 @@ import { Icon } from "./Icons";
 
 export type TabId = "beranda" | "berita" | "ppdb" | "artikel" | "info";
 
-export default function BottomNav({ active, onChange }: { active: string | null; onChange: (t: string) => void }) {
+/**
+ * Navigasi bawah situs.
+ *
+ * Ada dua tampilan, isinya sama (ikon + nama menu di bawah ikon):
+ *  - `melayang` → dipakai di halaman beranda: batang mengambang, membulat penuh,
+ *    berjarak dari tepi layar, tab aktif berupa pil hijau.
+ *  - biasa (bawaan) → dipakai halaman lain: batang penuh menempel di bawah layar
+ *    dengan garis pemisah, seperti desain sebelumnya.
+ */
+export default function BottomNav({
+  active,
+  onChange,
+  melayang = false,
+}: {
+  active: string | null;
+  onChange: (t: string) => void;
+  /** Tampilan mengambang, khusus halaman beranda. */
+  melayang?: boolean;
+}) {
   const tab = navTampil(useBeranda());
+
+  if (melayang) {
+    return (
+      <nav
+        aria-label="Navigasi bawah"
+        className="pointer-events-none fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pt-2"
+        style={{ paddingBottom: "max(0.9rem, env(safe-area-inset-bottom))" }}
+      >
+        <ul className="pointer-events-auto flex w-full max-w-[430px] items-center justify-between gap-1 rounded-[26px] border border-line bg-white/95 px-3 py-3 max-[359px]:gap-0.5 max-[359px]:px-1.5 max-[359px]:py-2 shadow-[0_22px_44px_-18px_rgba(7,41,26,0.45)] backdrop-blur-md">
+          {tab.map((t) => {
+            const ini = active === t.halaman;
+            return (
+              <li key={t.halaman} className="flex flex-1 justify-center">
+                <button
+                  type="button"
+                  onClick={() => onChange(t.halaman)}
+                  aria-current={ini ? "page" : undefined}
+                  title={t.label}
+                  data-testid={`nav-${t.halaman}`}
+                  className="flex items-center justify-center transition active:scale-95"
+                >
+                  {ini ? (
+                    /* Tab aktif: ikon dengan nama menu di samping kanannya, dalam pil hijau. */
+                    <span className="flex items-center gap-2 rounded-full bg-persis-900 px-4 py-2.5 text-white max-[359px]:gap-1.5 max-[359px]:px-2.5 shadow-[0_10px_20px_-14px_rgba(7,41,26,0.9)]">
+                      <Icon name={t.ikon} className="h-[18px] w-[18px] shrink-0" />
+                      <span className="text-[10.5px] font-bold whitespace-nowrap">{t.label}</span>
+                    </span>
+                  ) : (
+                    /* Tab lain: ikon dengan nama menu di bawahnya. */
+                    <span className="flex flex-col items-center gap-1.5 rounded-full px-2 py-1 text-ink-600 max-[359px]:gap-1 max-[359px]:px-1 transition hover:bg-mist hover:text-ink-900">
+                      <Icon name={t.ikon} className="h-[21px] w-[21px] shrink-0" />
+                      <span className="max-w-[58px] truncate text-[10px] max-[359px]:text-[9px] leading-none font-semibold">
+                        {t.label}
+                      </span>
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </nav>
+    );
+  }
 
   return (
     <nav
@@ -42,7 +104,7 @@ export default function BottomNav({ active, onChange }: { active: string | null;
   );
 }
 
-/** Menu bawah khusus portal wali santri. */
+/** Menu bawah khusus portal wali santri — tetap tampilan biasa. */
 export const tabWali = [
   { id: "beranda", label: "Beranda", icon: "home" },
   { id: "nilai", label: "Nilai", icon: "clipboard" },
