@@ -210,11 +210,13 @@ export async function muatDataSitus(): Promise<void> {
 
     if (menu.length) {
       data.gridMenu = menu.map(({ id, label, ikon, halaman }) => ({ id, label, ikon, halaman }));
-      /* Kartu akses cepat memakai isi menu yang sama, warnanya bergilir. */
+      /* Kartu akses cepat memakai isi menu yang sama, warnanya bergilir.
+         Caption kartu diambil dari kolom keterangan (isian "Caption kartu" di panel admin);
+         lencana hanya dipakai bila caption belum diisi. */
       data.aksesCepat = menu.map((g, i) => ({
         id: g.id,
         label: g.label,
-        sub: g.lencana || g.keterangan,
+        sub: g.keterangan || g.lencana,
         ikon: g.ikon,
         halaman: g.halaman,
         /* Warna dari panel admin dipakai bila bentuknya kode warna (#rrggbb). */
