@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AreaTeks, Kolom, Pesan, TombolIkon, TombolSimpan } from "../../components/admin/Form";
+import { AreaTeks, Kolom, Pesan, Sakelar, TombolIkon, TombolSimpan } from "../../components/admin/Form";
 import { Icon } from "../../components/Icons";
 import PilihGambar from "../../components/admin/PilihGambar";
 import { gambar } from "../../data/content";
@@ -207,6 +207,8 @@ type BarisJenjang = {
   tagline: string;
   gambar: string;
   jumlahUnit: number;
+  /** Ikut dihitung pada angka Jenjang Pendidikan (MDT: tidak). */
+  hitungJenjang: boolean;
   gambarBerubah?: boolean;
 };
 
@@ -228,6 +230,7 @@ export function NamaJenjang() {
           tagline: j.tagline,
           gambar: j.gambar,
           jumlahUnit: j.jumlahUnit,
+          hitungJenjang: j.hitungJenjang !== false,
         })),
       );
       setTerisi(true);
@@ -257,11 +260,22 @@ export function NamaJenjang() {
         continue;
       }
       if (b.id) {
-        await ubahJenjang(b.id, { nama, singkatan: short, tagline, ...(b.gambarBerubah ? { gambar_url: b.gambar } : {}) });
+        await ubahJenjang(b.id, {
+          nama,
+          singkatan: short,
+          tagline,
+          hitungJenjang: b.hitungJenjang,
+          ...(b.gambarBerubah ? { gambar_url: b.gambar } : {}),
+        });
         urut.push(b.id);
         hasil.push({ ...b, nama, short, tagline, gambarBerubah: false });
       } else {
-        const jawab = (await tambahJenjang({ nama, singkatan: short, tagline })) as {
+        const jawab = (await tambahJenjang({
+          nama,
+          singkatan: short,
+          tagline,
+          hitungJenjang: b.hitungJenjang,
+        })) as {
           jenjang?: { id: string }[];
         };
         const baru = (jawab.jenjang ?? []).find((p) => !idDiketahui.has(p.id));
@@ -382,6 +396,17 @@ export function NamaJenjang() {
                   }}
                 />
               </label>
+              {/* Pilihan apakah jenjang ini ikut dihitung pada angka jenjang. */}
+              <Sakelar
+                testid={`jenjang-hitung-${i}`}
+                label="Masuk hitungan jenjang"
+                nilai={b.hitungJenjang}
+                onUbah={(v) => {
+                  setKotor(true);
+                  setBaris((s) => s.map((r, k) => (k === i ? { ...r, hitungJenjang: v } : r)));
+                }}
+                petunjuk="Matikan untuk Madrasah Diniyyah Takmiliyyah (MDT) dan pendidikan sejenis: halamannya tetap bisa dibuka, tetapi tidak menambah jumlah jenjang di beranda maupun di judul halaman Jenjang."
+              />
               <PilihGambar
                 label="Gambar jenjang"
                 petunjuk="Tampil pada kartu jenjang di halaman Jenjang Pendidikan."
@@ -402,7 +427,7 @@ export function NamaJenjang() {
         type="button"
         data-testid="tambah-jenjang"
         onClick={() => {
-          setBaris((s) => [...s, { short: "", nama: "", tagline: "", gambar: "", jumlahUnit: 0 }]);
+          setBaris((s) => [...s, { short: "", nama: "", tagline: "", gambar: "", jumlahUnit: 0, hitungJenjang: true }]);
           setKotor(true);
         }}
         className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-full border border-dashed border-persis-900/25 px-4 py-2.5 text-[11px] font-semibold text-persis-900 transition active:scale-[0.98]"
@@ -414,8 +439,9 @@ export function NamaJenjang() {
       <p className="mt-4 text-justify text-[10.5px] leading-relaxed text-ink-400">
         Jenjang yang masih memiliki unit, jurusan, mata pelajaran, atau santri tidak bisa dihapus — pesannya akan muncul
         dan sebutkan jumlah datanya. Jenjang baru akan tampil di halaman sesuai urutannya setelah nama dan singkatannya
-        diisi lalu disimpan. Rincian lain tiap jenjang (jumlah siswa, pengantar, dan fasilitas) menyusul pada
-        menu berikutnya.
+        diisi lalu disimpan. Pilihan “Masuk hitungan jenjang” menentukan apakah jenjang itu ikut dihitung pada angka
+        Jenjang Pendidikan di beranda dan di judul halaman Jenjang — matikan untuk MDT. Rincian lain tiap jenjang
+        (jumlah siswa, pengantar, dan fasilitas) menyusul pada menu berikutnya.
       </p>
       <div className="mt-3.5">
         <TombolSimpan
