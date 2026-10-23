@@ -113,10 +113,10 @@ export const urutPengurus = (urut: string[]) => kirim("/api/admin/pengurus-urut"
 export const simpanHalamanJenjang = (nilai: Record<string, string>) =>
   kirim("/api/admin/jenjang-halaman", "PUT", nilai);
 
-export const ubahJenjang = (id: string, nilai: Record<string, string>) =>
+export const ubahJenjang = (id: string, nilai: Record<string, unknown>) =>
   kirim(`/api/admin/jenjang/${encodeURIComponent(id)}`, "PUT", nilai);
 
-export const tambahJenjang = (nilai: Record<string, string>) => kirim("/api/admin/jenjang", "POST", nilai);
+export const tambahJenjang = (nilai: Record<string, unknown>) => kirim("/api/admin/jenjang", "POST", nilai);
 
 export const hapusJenjang = (id: string) => kirim(`/api/admin/jenjang/${encodeURIComponent(id)}`, "DELETE");
 
