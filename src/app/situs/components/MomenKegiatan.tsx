@@ -94,11 +94,34 @@ export default function MomenKegiatan({
             className="w-[164px] shrink-0 overflow-hidden rounded-[14px] border border-line bg-white text-left transition active:scale-[0.98]"
           >
             <GambarMomen src={m.gambar} alt={m.judul} />
+            {/* Keterangan dikunci dua baris (nama album) + dua baris (judul), dengan
+                tinggi tetap. Tanpa ini judul yang panjang memakai tiga baris dan
+                membuat kartu lain ikut melar — menyisakan ruang kosong putih di
+                dalam bingkainya. Gaya ditulis langsung supaya tetap berlaku walau
+                kelas line-clamp tidak ikut terbangun di CSS situs. */}
             <span className="block p-2.5">
-              <span className="block text-[7.5px] font-extrabold tracking-[0.14em] text-gold-600 uppercase">
+              <span
+                className="block text-[7.5px] font-extrabold tracking-[0.14em] text-gold-600 uppercase"
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  minHeight: 22,
+                }}
+              >
                 {m.album}
               </span>
-              <span className="mt-1 line-clamp-2 block text-[10.5px] leading-snug font-bold text-ink-900">
+              <span
+                className="mt-1 block text-[10.5px] leading-snug font-bold text-ink-900"
+                style={{
+                  display: "-webkit-box",
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: "vertical",
+                  overflow: "hidden",
+                  minHeight: 29,
+                }}
+              >
                 {m.judul}
               </span>
             </span>
