@@ -184,7 +184,31 @@ export type Agenda = {
 
 export let agenda: Agenda[] = [];
 
-export const agendaTerdekat = (n = 5) => [...agenda].sort((a, b) => a.date.localeCompare(b.date)).slice(0, n);
+/** Tanggal hari ini menurut Waktu Indonesia Barat, bentuk YYYY-MM-DD. */
+function hariIniWib(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+/**
+ * Agenda yang belum lewat — hari ini dan sesudahnya — urut dari yang paling dekat.
+ *
+ * Agenda bertanggal lampau sengaja dibuang: bagian "Agenda Terdekat" dan
+ * notifikasinya harus kosong kalau tidak ada acara mendatang, bukan menampilkan
+ * acara kemarin. Patokannya tanggal WIB, bukan tanggal perangkat pengunjung.
+ */
+export const agendaTerdekat = (n = 5) => {
+  const batas = hariIniWib();
+  return agenda
+    .filter((a) => typeof a.date === "string" && /^\d{4}-\d{2}-\d{2}/.test(a.date))
+    .filter((a) => a.date.slice(0, 10) >= batas)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .slice(0, n);
+};
 
 /* ------------------------------------------------------------------ */
 /* Notifikasi kepala beranda                                          */
