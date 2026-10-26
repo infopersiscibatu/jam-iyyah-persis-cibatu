@@ -641,7 +641,8 @@ const __ekspor = function pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBul
 
       const metode = await daftar(
         `select id, nama, keterangan, bank, nomor, atas_nama, langkah, gambar_url
-           from metode_pembayaran where aktif order by urutan, nama`,
+           from metode_pembayaran where aktif and unit_id = $1 order by urutan, nama`,
+        [sesi.unit_id],
       );
 
       res.json({
@@ -1633,8 +1634,9 @@ const __ekspor = function pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBul
       : null;
 
   /**
-   * Daftar metode pembayaran. Satu daftar dipakai bersama seluruh unit: tampil di portal
-   * wali, di borang Catat pembayaran menu Tagihan, dan di menu ini untuk dirapikan.
+   * Daftar metode pembayaran milik unit yang sedang masuk. Setiap unit sekolah punya
+   * daftarnya sendiri: rekening RA tidak tercampur dengan MI, MTs, MA, MDT, atau Tahfizh.
+   * Daftar ini juga yang dipakai portal wali unit tersebut dan borang Catat pembayaran.
    */
   app.get("/api/unit/tata-usaha/metode", async (req, res) => {
     try {
@@ -1649,7 +1651,9 @@ const __ekspor = function pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBul
                   where p.metode_id = m.id
                      or (p.metode is not null and lower(trim(p.metode)) = lower(trim(m.nama)))) as dipakai
            from metode_pembayaran m
+          where m.unit_id = $1
           order by m.urutan, m.nama`,
+        [sesi.unit_id],
       );
       res.json({ ok: true, metode: rows.map(barisMetode) });
     } catch (e) {
@@ -1667,26 +1671,30 @@ const __ekspor = function pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBul
         return res.status(400).json({ pesan: "Nama metode minimal 3 huruf, misalnya Transfer Bank." });
       }
       const kembar = await satu(
-        "select id from metode_pembayaran where lower(trim(nama)) = lower(trim($1))",
-        [isi.nama],
+        "select id from metode_pembayaran where unit_id = $1 and lower(trim(nama)) = lower(trim($2))",
+        [sesi.unit_id, isi.nama],
       );
-      if (kembar) return res.status(400).json({ pesan: `Metode “${isi.nama}” sudah ada di daftar.` });
+      if (kembar) return res.status(400).json({ pesan: `Metode “${isi.nama}” sudah ada di daftar unit ini.` });
       const galatGambar = galatGambarMetode(isi);
       if (galatGambar) return res.status(400).json({ pesan: galatGambar });
 
       let urutan = Number.isFinite(isi.urutan) ? isi.urutan : null;
       if (urutan === null) {
-        const terakhir = await satu("select coalesce(max(urutan), 0) + 1 as berikutnya from metode_pembayaran");
+        const terakhir = await satu(
+          "select coalesce(max(urutan), 0) + 1 as berikutnya from metode_pembayaran where unit_id = $1",
+          [sesi.unit_id],
+        );
         urutan = angka(terakhir?.berikutnya) || 1;
       }
 
       const id = `mb-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
       await tanya(
-        `insert into metode_pembayaran (id, urutan, nama, keterangan, bank, nomor, atas_nama, langkah,
+        `insert into metode_pembayaran (id, unit_id, urutan, nama, keterangan, bank, nomor, atas_nama, langkah,
                                        gambar_url, media_id, aktif, diperbarui)
-         values ($1,$2,$3,$4,$5,$6,$7,$8::jsonb,$9,$10,$11, now())`,
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9::jsonb,$10,$11,$12, now())`,
         [
           id,
+          sesi.unit_id,
           urutan,
           isi.nama,
           isi.keterangan,
@@ -1700,7 +1708,7 @@ const __ekspor = function pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBul
         ],
       );
 
-      res.json({ ok: true, id, pesan: `Metode pembayaran “${isi.nama}” ditambahkan.` });
+      res.json({ ok: true, id, pesan: `Metode pembayaran “${isi.nama}” ditambahkan untuk unit ini.` });
     } catch (e) {
       res.status(500).json({ pesan: e.message });
     }
@@ -1716,22 +1724,26 @@ const __ekspor = function pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBul
         return res.status(400).json({ pesan: "Nama metode minimal 3 huruf, misalnya Transfer Bank." });
       }
       const kembar = await satu(
-        "select id from metode_pembayaran where lower(trim(nama)) = lower(trim($1)) and id <> $2",
-        [isi.nama, req.params.id],
+        "select id from metode_pembayaran where unit_id = $1 and lower(trim(nama)) = lower(trim($2)) and id <> $3",
+        [sesi.unit_id, isi.nama, req.params.id],
       );
-      if (kembar) return res.status(400).json({ pesan: `Metode “${isi.nama}” sudah ada di daftar.` });
+      if (kembar) return res.status(400).json({ pesan: `Metode “${isi.nama}” sudah ada di daftar unit ini.` });
       const galatGambar = galatGambarMetode(isi);
       if (galatGambar) return res.status(400).json({ pesan: galatGambar });
 
-      const lamaMetode = await satu("select urutan from metode_pembayaran where id = $1", [req.params.id]);
-      if (!lamaMetode) return res.status(404).json({ pesan: "Metode pembayaran tidak ditemukan." });
+      /* Hanya metode milik unit yang sedang masuk yang boleh diubah. */
+      const lamaMetode = await satu("select urutan from metode_pembayaran where id = $1 and unit_id = $2", [
+        req.params.id,
+        sesi.unit_id,
+      ]);
+      if (!lamaMetode) return res.status(404).json({ pesan: "Metode pembayaran tidak ditemukan di unit ini." });
 
       await tanya(
         `update metode_pembayaran
             set nama = $2, keterangan = $3, bank = $4, nomor = $5, atas_nama = $6,
                 langkah = $7::jsonb, gambar_url = $8, media_id = $9, urutan = $10, aktif = $11,
                 diperbarui = now()
-          where id = $1`,
+          where id = $1 and unit_id = $12`,
         [
           req.params.id,
           isi.nama,
@@ -1744,6 +1756,7 @@ const __ekspor = function pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBul
           isi.mediaId,
           Number.isFinite(isi.urutan) ? isi.urutan : angka(lamaMetode.urutan),
           isi.aktif,
+          sesi.unit_id,
         ],
       );
 
@@ -1761,13 +1774,16 @@ const __ekspor = function pasangRuteUnitTataUsaha(app, { tanya, push, tagihanBul
       const sesi = sekolahWajib(req, res);
       if (!sesi) return;
 
-      const m = await satu("select id, nama from metode_pembayaran where id = $1", [req.params.id]);
-      if (!m) return res.status(404).json({ pesan: "Metode pembayaran tidak ditemukan." });
+      const m = await satu("select id, nama from metode_pembayaran where id = $1 and unit_id = $2", [
+        req.params.id,
+        sesi.unit_id,
+      ]);
+      if (!m) return res.status(404).json({ pesan: "Metode pembayaran tidak ditemukan di unit ini." });
 
-      await tanya("delete from metode_pembayaran where id = $1", [m.id]);
+      await tanya("delete from metode_pembayaran where id = $1 and unit_id = $2", [m.id, sesi.unit_id]);
       res.json({
         ok: true,
-        pesan: `Metode pembayaran “${m.nama}” dihapus dari daftar. Riwayat pembayaran yang sudah tercatat tetap utuh.`,
+        pesan: `Metode pembayaran “${m.nama}” dihapus dari daftar unit ini. Riwayat pembayaran yang sudah tercatat tetap utuh.`,
       });
     } catch (e) {
       res.status(500).json({ pesan: e.message });
