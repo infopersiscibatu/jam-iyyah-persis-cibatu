@@ -1,6 +1,15 @@
+import { useState } from "react";
 import { momenGaleri } from "../lib/content";
 import type { FotoTampil } from "./PenampilFoto";
+import { Icon } from "./Icons";
 import JudulSeksi from "./JudulSeksi";
+
+/** Alamat gambar yang benar-benar bisa dipakai (bukan kosong / "null"). */
+function alamatSah(gambar?: string | null) {
+  const teks = String(gambar ?? "").trim();
+  if (teks === "" || teks === "null" || teks === "undefined" || teks === "data:,") return false;
+  return true;
+}
 
 /**
  * Foto momen kegiatan yang tampil di beranda, diambil dari galeri (album foto
@@ -8,13 +17,51 @@ import JudulSeksi from "./JudulSeksi";
  * dari yang terbaru, mengikuti urutan /api/galeri.
  */
 export function momenFoto(): FotoTampil[] {
-  return momenGaleri(6).map((f) => ({
-    id: f.id,
-    gambar: f.gambar,
-    judul: f.judul,
-    album: f.album,
-    tanggal: f.tanggal,
-  }));
+  return momenGaleri(6)
+    .filter((f) => alamatSah(f.gambar))
+    .map((f) => ({
+      id: f.id,
+      gambar: f.gambar,
+      judul: f.judul,
+      album: f.album,
+      tanggal: f.tanggal,
+    }));
+}
+
+/**
+ * Satu gambar di dalam bingkai kartu.
+ *
+ * Bingkainya dikunci (92px, selebar kartu, sudut membulat, latar netral), lalu
+ * fotonya diletakkan absolut menutupi seluruh bingkai dengan object-cover.
+ * Dengan cara ini:
+ *   - foto mendatar, tegak, atau persegi sama-sama menutupi bingkai penuh;
+ *   - selama foto masih diunduh, bingkai tetap berwarna netral (bukan putih
+ *     kosong yang terlihat seperti gambar tidak menutupi bingkainya);
+ *   - bila alamat fotonya rusak atau berkasnya sudah tidak ada, yang tampil
+ *     ikon gambar kecil di latar netral — bukan kotak kosong atau ikon gambar
+ *     rusak dari peramban.
+ */
+function GambarMomen({ src, alt }: { src: string; alt: string }) {
+  const [gagal, setGagal] = useState(false);
+
+  return (
+    <span className="relative block h-[92px] w-full overflow-hidden bg-mist">
+      {gagal ? (
+        <span className="absolute inset-0 grid place-items-center text-ink-400" aria-hidden="true">
+          <Icon name="image" className="h-5 w-5" />
+        </span>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          loading="lazy"
+          decoding="async"
+          onError={() => setGagal(true)}
+          className="absolute inset-0 h-full w-full object-cover object-center"
+        />
+      )}
+    </span>
+  );
 }
 
 /**
@@ -30,6 +77,8 @@ export default function MomenKegiatan({
 }) {
   const daftar = momenFoto();
 
+  if (daftar.length === 0) return null;
+
   return (
     <section aria-label="Momen kegiatan">
       <JudulSeksi title="Momen Kegiatan" subtitle="Dokumentasi terbaru" onAction={onSemua} />
@@ -44,7 +93,7 @@ export default function MomenKegiatan({
             data-testid={`momen-${m.id}`}
             className="w-[164px] shrink-0 overflow-hidden rounded-[14px] border border-line bg-white text-left transition active:scale-[0.98]"
           >
-            <img src={m.gambar} alt={m.judul} loading="lazy" className="h-[92px] w-full object-cover" />
+            <GambarMomen src={m.gambar} alt={m.judul} />
             <span className="block p-2.5">
               <span className="block text-[7.5px] font-extrabold tracking-[0.14em] text-gold-600 uppercase">
                 {m.album}
