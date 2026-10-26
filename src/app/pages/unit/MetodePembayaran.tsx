@@ -14,11 +14,15 @@ import {
 import { KepalaKartu } from "../../components/admin/KepalaKartu";
 import Lembar from "./Lembar";
 import { useIstilah } from "../../lib/istilah";
+import { useSesiUnit } from "../../lib/sesiUnit";
 
 /**
  * Menu Metode Pembayaran: bendahara tata usaha merapikan daftar cara pembayaran yang
- * ditawarkan — rekening transfer, QRIS, tunai, dan sebagainya. Satu daftar dipakai
- * bersama semua unit: tampil di portal wali dan di borang Catat pembayaran pada tagihan.
+ * ditawarkan — rekening transfer, QRIS, tunai, dan sebagainya.
+ *
+ * Daftarnya milik unit yang sedang masuk saja: RA, MI, MTs, MA, MDT, dan Tahfizh masing-
+ * masing punya rekening sendiri. Daftar unit ini yang tampil di portal wali unit ini dan
+ * di borang Catat pembayaran pada tagihan; unit lain tidak ikut berubah.
  */
 
 const kosong: IsianMetode = {
@@ -36,6 +40,8 @@ const kosong: IsianMetode = {
 
 export default function MetodePembayaran() {
   const istilah = useIstilah();
+  const { sesi } = useSesiUnit();
+  const namaUnit = sesi?.unit?.nama ?? "unit ini";
   const [data, setData] = useState<Awaited<ReturnType<typeof daftarMetodeTU>> | null>(null);
   const [memuat, setMemuat] = useState(true);
   const [galat, setGalat] = useState<string | null>(null);
@@ -123,10 +129,23 @@ export default function MetodePembayaran() {
 
   return (
     <section data-testid="tu-metode" className="mt-4">
-      <div className="rounded-2xl border border-black/[0.08] bg-white p-3.5">
+      <div className="rounded-2xl border border-line bg-white shadow-[0_10px_22px_-22px_rgba(7,41,26,0.55)] p-3.5">
         <KepalaKartu
-          judul="Metode Pembayaran"
-          keterangan={`Atur cara pembayaran yang ditawarkan ke ${istilah.waliKecil}: rekening transfer, QRIS, tunai di bendahara, dan sebagainya. Untuk QRIS, unggah gambar kode QR resmi supaya ${istilah.waliKecil} dapat langsung memindainya pada halaman pembayaran. Daftar ini dipakai bersama seluruh unit — tampil di portal wali dan di borang Catat pembayaran pada menu Tagihan.`}
+          judul={
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              Metode Pembayaran
+              <span
+                data-testid="tu-metode-unit"
+                className="rounded-full bg-persis-100 px-2 py-0.5 text-[9px] font-bold tracking-[0.02em] text-persis-900"
+              >
+                {namaUnit}
+              </span>
+            </span>
+          }
+          keterangan={`Atur cara pembayaran yang ditawarkan ke ${istilah.waliKecil} untuk ${namaUnit}: rekening transfer, QRIS, tunai di bendahara, dan sebagainya. Untuk QRIS, unggah gambar kode QR resmi supaya ${istilah.waliKecil} dapat langsung memindainya pada halaman pembayaran. Daftar ini khusus ${namaUnit} — unit lain mengatur daftarnya sendiri, dan daftar ini yang tampil di portal ${istilah.waliKecil} unit ini serta di borang Catat pembayaran pada menu Tagihan.`}
+          angka={memuat && !data ? "…" : daftar.length}
+          labelAngka="metode"
+          testidAngka="tu-metode-jumlah"
           tombol={
             <button
               type="button"
@@ -146,20 +165,20 @@ export default function MetodePembayaran() {
           <p className="mt-3 text-justify text-[11px] leading-relaxed text-ink-600">{galat}</p>
         ) : daftar.length === 0 ? (
           <p data-testid="tu-metode-kosong" className="mt-3 text-justify text-[11px] leading-relaxed text-ink-400">
-            Belum ada metode pembayaran. Tambahkan paling sedikit satu, misalnya rekening transfer, agar{" "}
-            {istilah.waliKecil} tahu ke mana pembayarannya dikirim.
+            Belum ada metode pembayaran untuk {namaUnit}. Tambahkan paling sedikit satu, misalnya rekening transfer unit
+            ini, agar {istilah.waliKecil} tahu ke mana pembayarannya dikirim.
           </p>
         ) : (
           <ul className="mt-3 space-y-2" data-testid="tu-metode-daftar">
             {daftar.map((m) => (
               <li key={m.id} data-testid={`tu-metode-baris-${m.id}`}>
-                <div className="flex items-stretch gap-1.5 rounded-xl border border-black/[0.08]">
+                <div className="flex items-stretch gap-1.5 rounded-xl border border-line">
                   {m.gambarUrl ? (
                     <img
                       src={m.gambarUrl}
                       alt={`Gambar metode ${m.nama}`}
                       data-testid={`tu-metode-gambar-${m.id}`}
-                      className="my-2.5 ml-2.5 h-14 w-14 shrink-0 rounded-lg border border-black/[0.08] bg-white object-contain p-1"
+                      className="my-2.5 ml-2.5 h-14 w-14 shrink-0 rounded-lg border border-line bg-white object-contain p-1"
                     />
                   ) : null}
                   <div className="min-w-0 flex-1 px-3.5 py-2.5">
@@ -187,7 +206,7 @@ export default function MetodePembayaran() {
                       {m.langkah.length > 0 ? ` · ${m.langkah.length} langkah` : ""}
                     </p>
                   </div>
-                  <div className="flex shrink-0 flex-col border-l border-black/[0.07]">
+                  <div className="flex shrink-0 flex-col border-l border-line">
                     <button
                       type="button"
                       data-testid={`tu-metode-ubah-${m.id}`}
@@ -203,7 +222,7 @@ export default function MetodePembayaran() {
                       aria-label={`Hapus metode ${m.nama}`}
                       disabled={sibuk === m.id}
                       onClick={() => void hapus(m)}
-                      className="grid flex-1 w-10 place-items-center border-t border-black/[0.07] text-rose-700 disabled:opacity-50"
+                      className="grid flex-1 w-10 place-items-center border-t border-line text-rose-700 disabled:opacity-50"
                     >
                       <Icon name="trash" className="h-[14px] w-[14px]" />
                     </button>
@@ -215,9 +234,10 @@ export default function MetodePembayaran() {
         )}
 
         <p className="mt-3 text-justify text-[10px] leading-relaxed text-ink-400">
-          Mengganti nama metode berlaku untuk pembayaran berikutnya dan tampilan di portal wali; riwayat pembayaran
-          yang sudah tercatat tetap menyimpan nama metode saat pembayarannya diterima. Metode yang dimatikan tidak
-          dihapus, hanya tidak lagi ditawarkan.
+          Daftar ini hanya berlaku untuk {namaUnit}; unit lain punya daftarnya sendiri. Mengganti nama metode berlaku untuk
+          pembayaran berikutnya dan tampilan di portal {istilah.waliKecil}; riwayat pembayaran yang sudah tercatat tetap
+          menyimpan nama metode saat pembayarannya diterima. Metode yang dimatikan tidak dihapus, hanya tidak lagi
+          ditawarkan.
         </p>
       </div>
 
