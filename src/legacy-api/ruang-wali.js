@@ -400,7 +400,8 @@ const __ekspor = function pasangRuteWali(app, { tanya, storage, push, tagihanBul
 
       const metode = await daftar(
         `select id, nama, keterangan, bank, nomor, atas_nama, langkah, gambar_url
-           from metode_pembayaran where aktif order by urutan, nama`,
+           from metode_pembayaran where aktif and unit_id = $1 order by urutan, nama`,
+        [w.unit_id],
       );
 
       /* Nilai dan catatan tahfidz hanya tampil setelah diterbitkan petugas Admin Sekolah. */
