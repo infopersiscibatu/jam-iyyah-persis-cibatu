@@ -146,6 +146,13 @@ function simpanToken(token: string) {
   } catch {
     /* penyimpanan peramban tidak tersedia — sesi tetap jalan selama halaman terbuka */
   }
+  /* Sesi berubah (masuk, keluar, atau sesi berakhir di server): beri tahu kepala
+     halaman dan bagian lain di tab yang sama SEKETIKA, tanpa menunggu muat ulang. */
+  try {
+    window.dispatchEvent(new Event("wali-sesi"));
+  } catch {
+    /* bukan peramban dengan Event — abaikan */
+  }
 }
 
 /** Galat sesi berakhir — portal akan meminta PIN lagi. */
