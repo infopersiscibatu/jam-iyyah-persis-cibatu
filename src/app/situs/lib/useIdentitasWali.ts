@@ -7,22 +7,37 @@ import { ambilTagihanWali, tokenWali } from "../../lib/waliPortal";
  *
  * Berkas ini berdiri sendiri: cukup memakai `tokenWali` dan `ambilTagihanWali` dari
  * src/app/lib/waliPortal.ts, tanpa menambah fungsi baru di berkas tersebut.
+ *
+ * Nama disimpan BERSAMA token sesinya. Ini yang membuat label sapaan selalu
+ * mengikuti sesi yang sedang berjalan:
+ *   - keluar (PIN)      → token hilang  → simpanan dibuang → label kembali "Jama'ah Persis Cibatu";
+ *   - masuk wali lain   → token berbeda → simpanan lama dibuang → nama diambil ulang dari server.
+ * Sebelumnya nama disimpan sendiri tanpa terikat sesi, sehingga nama wali lama
+ * terus menempel walau sudah keluar atau berganti akun.
  */
 
-const KUNCI_IDENTITAS = "persis-cibatu-wali-identitas-v1";
+type SimpananNama = { nama: string; token: string };
 
-function bacaNama(): string {
+const KUNCI = "persis-cibatu-wali-identitas-v2";
+/** Kunci versi lama: nama tanpa token, sumber label yang tertinggal. Dibuang saat dibaca. */
+const KUNCI_LAMA = "persis-cibatu-wali-identitas-v1";
+
+function hapusSimpanan(kunci: string) {
   try {
-    return window.localStorage.getItem(KUNCI_IDENTITAS) ?? "";
+    window.localStorage.removeItem(kunci);
   } catch {
-    return "";
+    /* penyimpanan peramban tidak tersedia */
   }
 }
 
-function simpanNama(nama: string) {
+function simpanNama(nama: string, token: string) {
   try {
-    if (nama) window.localStorage.setItem(KUNCI_IDENTITAS, nama);
-    else window.localStorage.removeItem(KUNCI_IDENTITAS);
+    if (nama && token) {
+      const isi: SimpananNama = { nama, token };
+      window.localStorage.setItem(KUNCI, JSON.stringify(isi));
+    } else {
+      hapusSimpanan(KUNCI);
+    }
   } catch {
     /* penyimpanan peramban tidak tersedia */
   }
@@ -33,39 +48,87 @@ function simpanNama(nama: string) {
   }
 }
 
+/**
+ * Nama yang sah untuk sesi yang sedang berjalan.
+ * Belum masuk, sudah keluar, atau token berbeda (wali lain) → kosong.
+ */
+function bacaNama(): string {
+  const token = tokenWali();
+  hapusSimpanan(KUNCI_LAMA);
+  if (!token) {
+    hapusSimpanan(KUNCI);
+    return "";
+  }
+
+  try {
+    const mentah = window.localStorage.getItem(KUNCI);
+    if (!mentah) return "";
+    const isi = JSON.parse(mentah) as Partial<SimpananNama>;
+    if (typeof isi.nama !== "string" || isi.token !== token) {
+      hapusSimpanan(KUNCI);
+      return "";
+    }
+    return isi.nama.trim();
+  } catch {
+    hapusSimpanan(KUNCI);
+    return "";
+  }
+}
+
 export function useIdentitasWali(): string {
   const [nama, setNama] = useState<string>(() => bacaNama());
+  const [token, setToken] = useState<string>(() => tokenWali());
 
+  /* Ikuti perubahan sesi: keluar/masuk dari halaman portal wali, tab lain, atau
+     sesi yang berakhir sendiri di server. */
   useEffect(() => {
-    const baca = () => setNama(bacaNama());
-    baca();
-    window.addEventListener("wali-identitas", baca);
-    window.addEventListener("storage", baca);
+    const segarkan = () => {
+      const tokenSekarang = tokenWali();
+      setToken((lama) => (lama === tokenSekarang ? lama : tokenSekarang));
+      setNama((lama) => {
+        const baru = bacaNama();
+        return baru === lama ? lama : baru;
+      });
+    };
+
+    segarkan();
+    window.addEventListener("wali-sesi", segarkan);
+    window.addEventListener("wali-identitas", segarkan);
+    window.addEventListener("storage", segarkan);
+    window.addEventListener("focus", segarkan);
+    document.addEventListener("visibilitychange", segarkan);
+    /* Jaring pengaman: portal wali bisa mengubah sesi tanpa memberi sinyal,
+       jadi sesi diperiksa ulang tiap detik (hanya membaca penyimpanan peramban). */
+    const jam = window.setInterval(segarkan, 1000);
+
     return () => {
-      window.removeEventListener("wali-identitas", baca);
-      window.removeEventListener("storage", baca);
+      window.removeEventListener("wali-sesi", segarkan);
+      window.removeEventListener("wali-identitas", segarkan);
+      window.removeEventListener("storage", segarkan);
+      window.removeEventListener("focus", segarkan);
+      document.removeEventListener("visibilitychange", segarkan);
+      window.clearInterval(jam);
     };
   }, []);
 
-  /* Sesi lama (masuk sebelum nama disimpan): ambil sekali dari server supaya label ikut benar. */
+  /* Sesi ada tetapi namanya belum tersimpan (baru masuk): ambil sekali dari server. */
   useEffect(() => {
-    if (nama || !tokenWali()) return;
+    if (!token || nama) return;
     let hidup = true;
     void ambilTagihanWali()
       .then((data) => {
-        if (!hidup) return;
+        if (!hidup || tokenWali() !== token) return;
         const namaSantri = data.santri?.nama?.trim() ?? "";
-        if (namaSantri) simpanNama(namaSantri);
-        else if (!tokenWali()) simpanNama("");
+        if (namaSantri) simpanNama(namaSantri, token);
       })
       .catch(() => {
-        /* sesi kedaluwarsa: bersihkan label */
-        if (hidup && !tokenWali()) simpanNama("");
+        /* sesi kedaluwarsa / jaringan: label dibiarkan kosong, bukan nama wali lama */
+        if (hidup && !tokenWali()) simpanNama("", "");
       });
     return () => {
       hidup = false;
     };
-  }, [nama]);
+  }, [token, nama]);
 
   return nama;
 }
