@@ -310,13 +310,7 @@ export default function App() {
       ) : null}
       {tab === "ppdb" ? <HalamanSpmb /> : null}
       {tab === "galeri" ? <HalamanGaleri sasaran={slug} /> : null}
-      {tab === "aplikasi" ? (
-        <HalamanAplikasi
-          sasaran={slug}
-          onBuka={(id) => pindah("aplikasi", id)}
-          onKembali={() => pindah("aplikasi")}
-        />
-      ) : null}
+      {tab === "aplikasi" ? <HalamanAplikasi sasaran={slug} /> : null}
       {tab === "kontak" ? <HalamanKontak /> : null}
       {tab === "kajian" ? <HalamanKajian sasaran={slug} /> : null}
       {tab === "info" ? <HalamanDonasi onOpen={(s) => pindah("donasi-detail", s)} /> : null}
