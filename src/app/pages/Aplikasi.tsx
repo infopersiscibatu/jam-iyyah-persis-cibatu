@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Icon } from "../components/Icons";
+import { BlokIsi } from "../components/IsiKaya";
 import {
   ambilAplikasiSatu,
   kirimRating,
+  segarkanAplikasi,
   ukuranTerbaca,
   useAplikasi,
   type AplikasiItem,
@@ -78,95 +80,59 @@ function Unduh({ app, penuh = false }: { app: AplikasiItem; penuh?: boolean }) {
   );
 }
 
-/* --------------------------------- daftar --------------------------------- */
+/* ------------------------------ satu aplikasi ------------------------------ */
 
-export function HalamanAplikasi({
-  sasaran,
-  onBuka,
-  onKembali,
-}: {
-  sasaran?: string | null;
-  onBuka: (id: string) => void;
-  onKembali: () => void;
-}) {
+/**
+ * Halaman pengunjung "Download Aplikasi" langsung menampilkan halaman unduh
+ * aplikasinya, tanpa daftar lebih dulu. Bila ada beberapa aplikasi aktif, yang
+ * ditampilkan adalah yang pertama (urutan di panel admin); tautan `#/aplikasi/<id>`
+ * tetap bisa dipakai untuk membuka aplikasi tertentu.
+ */
+export function HalamanAplikasi({ sasaran }: { sasaran?: string | null }) {
   const daftar = useAplikasi();
+  const [selesai, setSelesai] = useState(false);
 
-  if (sasaran) {
-    const app = daftar.find((a) => a.id === sasaran);
-    return <RinciAplikasi id={sasaran} awal={app} onKembali={onKembali} />;
+  /* Penanda bahwa pengambilan data pertama sudah rampung, supaya "belum ada aplikasi"
+     tidak sempat berkedip sebelum daftarnya datang. */
+  useEffect(() => {
+    let hidup = true;
+    void segarkanAplikasi().finally(() => {
+      if (hidup) setSelesai(true);
+    });
+    return () => {
+      hidup = false;
+    };
+  }, []);
+
+  const app = (sasaran ? daftar.find((a) => a.id === sasaran) : daftar[0]) ?? undefined;
+  const id = sasaran ?? app?.id ?? null;
+
+  if (!id) {
+    return (
+      <div data-testid="halaman-aplikasi" className="px-4 pt-3">
+        {selesai ? (
+          <div className="mt-4 rounded-2xl border border-dashed border-black/[0.14] bg-white p-6 text-center">
+            <Icon name="newspaper" className="mx-auto h-7 w-7 text-ink-400" />
+            <p className="mt-2 text-[12px] font-semibold text-ink-900">Belum ada aplikasi</p>
+            <p className="mt-1 text-[10.5px] leading-relaxed text-ink-500">
+              Aplikasi yang diunggah pengurus lewat panel admin akan tampil di sini.
+            </p>
+          </div>
+        ) : (
+          <p className="mt-4 rounded-2xl border border-dashed border-black/[0.14] bg-white p-5 text-[11px] text-ink-500">
+            Memuat aplikasi…
+          </p>
+        )}
+      </div>
+    );
   }
 
-  return (
-    <div data-testid="halaman-aplikasi">
-      <header className="px-4 pt-3">
-        <h1 className="font-header text-[17px] leading-tight font-extrabold text-ink-900">Download Aplikasi</h1>
-        <p className="mt-1 text-justify text-[11px] leading-relaxed text-ink-500">
-          Aplikasi Android resmi PC PERSIS Cibatu. Ketuk untuk melihat tangkapan layar, fitur, dan memberi rating.
-        </p>
-      </header>
-
-      {daftar.length === 0 ? (
-        <div className="mx-4 mt-4 rounded-2xl border border-dashed border-black/[0.14] bg-white p-6 text-center">
-          <Icon name="newspaper" className="mx-auto h-7 w-7 text-ink-400" />
-          <p className="mt-2 text-[12px] font-semibold text-ink-900">Belum ada aplikasi</p>
-          <p className="mt-1 text-[10.5px] leading-relaxed text-ink-500">
-            Aplikasi yang diunggah pengurus lewat panel admin akan tampil di sini.
-          </p>
-        </div>
-      ) : (
-        <ul className="mt-3 space-y-2.5 px-4">
-          {daftar.map((a) => (
-            <li key={a.id}>
-              <button
-                type="button"
-                data-testid={`kartu-aplikasi-${a.id}`}
-                onClick={() => onBuka(a.id)}
-                className="flex w-full items-start gap-3 rounded-2xl border border-black/[0.08] bg-white p-3 text-left transition active:scale-[0.99]"
-              >
-                <IkonAplikasi app={a} />
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[13px] font-extrabold text-ink-900">{a.nama}</span>
-                  <span className="mt-0.5 block truncate text-[10.5px] text-ink-500">
-                    {a.pengembang || "PC PERSIS Cibatu"}
-                  </span>
-                  <span className="mt-1 flex items-center gap-1.5">
-                    <Bintang nilai={a.rata} />
-                    <span className="text-[9.5px] font-semibold text-ink-500">
-                      {a.jumlahRating > 0 ? `${a.rata} (${a.jumlahRating})` : "Belum ada rating"}
-                    </span>
-                    {a.versi ? (
-                      <span className="text-[9.5px] text-ink-400">· v{a.versi}</span>
-                    ) : null}
-                  </span>
-                </span>
-                <span className="shrink-0 self-center">
-                  <Unduh app={a} />
-                </span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <p className="mt-4 px-4 pb-2 text-justify text-[9.5px] leading-relaxed text-ink-400">
-        Aplikasi berformat APK untuk Android. Bila muncul peringatan saat memasang, izinkan pemasangan dari sumber
-        ini pada pengaturan peramban atau berkas di HP Anda.
-      </p>
-    </div>
-  );
+  return <RinciAplikasi id={id} awal={app} />;
 }
 
 /* --------------------------------- rinci --------------------------------- */
 
-function RinciAplikasi({
-  id,
-  awal,
-  onKembali,
-}: {
-  id: string;
-  awal?: AplikasiItem;
-  onKembali: () => void;
-}) {
+function RinciAplikasi({ id, awal }: { id: string; awal?: AplikasiItem }) {
   const [app, setApp] = useState<AplikasiItem | undefined>(awal);
   const [rating, setRating] = useState<RatingAplikasi[]>([]);
   const [bintang, setBintang] = useState(0);
@@ -213,13 +179,6 @@ function RinciAplikasi({
   if (!app) {
     return (
       <div className="px-4 pt-3">
-        <button
-          type="button"
-          onClick={onKembali}
-          className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-persis-900"
-        >
-          <Icon name="chevron" className="h-3.5 w-3.5 rotate-180" /> Kembali
-        </button>
         <p className="mt-4 rounded-2xl border border-dashed border-black/[0.14] bg-white p-5 text-[11px] text-ink-500">
           Memuat aplikasi…
         </p>
@@ -228,20 +187,9 @@ function RinciAplikasi({
   }
 
   return (
-    <div data-testid="rinci-aplikasi">
-      <div className="px-4 pt-3">
-        <button
-          type="button"
-          data-testid="kembali-dari-aplikasi"
-          onClick={onKembali}
-          className="inline-flex items-center gap-1 text-[11.5px] font-semibold text-persis-900"
-        >
-          <Icon name="chevron" className="h-3.5 w-3.5 rotate-180" /> Semua aplikasi
-        </button>
-      </div>
-
+    <div data-testid="rinci-aplikasi" className="pt-3">
       {/* Kepala seperti halaman aplikasi di Play Store */}
-      <div className="mt-3 flex items-start gap-3.5 px-4">
+      <div className="flex items-start gap-3.5 px-4">
         <IkonAplikasi app={app} besar />
         <div className="min-w-0 flex-1">
           <h1 className="font-header text-[16px] leading-tight font-extrabold text-ink-900">{app.nama}</h1>
@@ -282,9 +230,14 @@ function RinciAplikasi({
       {/* Deskripsi + fitur */}
       <section className="mt-4 px-4">
         <h2 className="font-header text-[12.5px] font-extrabold text-ink-900">Tentang aplikasi ini</h2>
-        <p className="mt-1.5 text-justify text-[11px] leading-relaxed whitespace-pre-line text-ink-600">
-          {app.deskripsi || "Belum ada keterangan."}
-        </p>
+        {app.deskripsi && app.deskripsi.trim() ? (
+          <BlokIsi
+            teks={app.deskripsi}
+            className="mt-1.5 text-justify text-[11px] leading-relaxed text-ink-600"
+          />
+        ) : (
+          <p className="mt-1.5 text-[11px] leading-relaxed text-ink-600">Belum ada keterangan.</p>
+        )}
 
         {app.fitur.length > 0 ? (
           <>
@@ -419,6 +372,11 @@ function RinciAplikasi({
             Belum ada ulasan. Jadilah yang pertama memberi rating.
           </p>
         )}
+
+        <p className="mt-4 pb-2 text-justify text-[9.5px] leading-relaxed text-ink-400">
+          Aplikasi berformat APK untuk Android. Bila muncul peringatan saat memasang, izinkan pemasangan dari sumber
+          ini pada pengaturan peramban atau berkas di HP Anda.
+        </p>
       </section>
     </div>
   );
