@@ -53,7 +53,19 @@ function base64KeBytes(data) {
   return out;
 }
 
+const TIPE_APK = "application/vnd.android.package-archive";
+
+/**
+ * Sebagian peramban dan pengelola berkas mengirim APK sebagai
+ * "application/octet-stream" atau "application/zip". Untuk berkas yang namanya
+ * berakhiran .apk, jenisnya ditetapkan sendiri supaya unggahannya tidak ditolak.
+ */
+function tipeSesuaiNama(nama, tipe) {
+  return /\.apk$/i.test(String(nama || "")) ? TIPE_APK : tipe;
+}
+
 export async function unggah({ nama, tipe, data, folder, alt, keterangan }) {
+  tipe = tipeSesuaiNama(nama, tipe);
   if (!JENIS_DIIZINKAN[tipe]) {
     throw galatPengguna("Jenis berkas tidak diizinkan. Gunakan JPG, PNG, WEBP, GIF, SVG, PDF, atau APK.");
   }
@@ -80,7 +92,21 @@ export async function unggah({ nama, tipe, data, folder, alt, keterangan }) {
     cacheControl: "31536000",
     upsert: false,
   });
-  if (error) throw new Error("Gagal menyimpan berkas: " + error.message);
+  if (error) {
+    /*
+     * Wadah penyimpanan punya daftar jenis berkas yang diizinkan. Bila APK belum
+     * terdaftar di sana, pesan aslinya berbunyi "mime type ... is not supported" —
+     * diterjemahkan supaya jelas apa yang harus diperbaiki.
+     */
+    if (/mime type .* is not supported/i.test(error.message)) {
+      throw galatPengguna(
+        "Penyimpanan media belum mengizinkan berkas APK. Minta pengelola mengizinkan jenis " +
+          TIPE_APK +
+          " pada wadah penyimpanan, lalu unggah lagi. Berkas gambar dan PDF tetap bisa diunggah.",
+      );
+    }
+    throw new Error("Gagal menyimpan berkas: " + error.message);
+  }
   return { kunci, url: `/berkas/${kunci}`, ukuran: isi.length, tipe, nama: namaAman(nama), alt, keterangan };
 }
 
