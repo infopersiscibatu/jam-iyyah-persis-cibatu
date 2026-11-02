@@ -77,6 +77,12 @@ const __ekspor = function pasangRuteAplikasi(app, { tanya }) {
              dibuat timestamptz not null default now()
            )`,
         );
+        /* Penanda perangkat: satu perangkat hanya boleh menilai satu aplikasi sekali. */
+        await tanya(`alter table aplikasi_rating add column if not exists perangkat text`);
+        await tanya(
+          `create unique index if not exists aplikasi_rating_perangkat_idx
+             on aplikasi_rating (aplikasi_id, perangkat) where perangkat is not null`,
+        );
         await tanya(`create index if not exists aplikasi_rating_app_idx on aplikasi_rating (aplikasi_id)`);
         await tanya(`create index if not exists aplikasi_screenshot_app_idx on aplikasi_screenshot (aplikasi_id)`);
       })().catch((e) => {
@@ -119,6 +125,12 @@ const __ekspor = function pasangRuteAplikasi(app, { tanya }) {
       screenshot: (screenshot.get(baris.id) ?? []).map((s) => ({ id: s.id, url: s.gambar_url })),
       rata: rata ? Number(rata.rata) : 0,
       jumlahRating: rata ? Number(rata.jumlah) : 0,
+      /* Tanggal update ditampilkan pada kartu info halaman unduh. */
+      diperbarui: baris.diperbarui
+        ? new Date(baris.diperbarui).toISOString()
+        : baris.dibuat
+          ? new Date(baris.dibuat).toISOString()
+          : null,
     };
   };
 
@@ -128,7 +140,7 @@ const __ekspor = function pasangRuteAplikasi(app, { tanya }) {
     const baris = (
       await tanya(
         `select id, nama, versi, pengembang, deskripsi, fitur, ikon_url, berkas_url, berkas_nama,
-                berkas_ukuran, aktif, urutan
+                berkas_ukuran, aktif, urutan, dibuat, diperbarui
            from aplikasi
           ${semua ? "" : "where aktif = true"}
           order by urutan nulls last, dibuat desc`,
@@ -175,6 +187,22 @@ const __ekspor = function pasangRuteAplikasi(app, { tanya }) {
     return { rata: row && row.rata ? Number(row.rata) : 0, jumlahRating: row ? Number(row.jumlah) : 0 };
   };
 
+  /** Penanda perangkat dari peramban pengunjung: huruf, angka, dan tanda hubung saja. */
+  const perangkatDari = (nilai) => {
+    const rapi = String(nilai ?? "").replace(/[^a-zA-Z0-9-]/g, "").slice(0, 60);
+    return rapi || null;
+  };
+
+  /** Sudah pernahkah perangkat ini menilai aplikasi tersebut? */
+  const sudahMenilai = async (id, perangkat) => {
+    if (!perangkat) return false;
+    const hasil = await tanya(
+      "select 1 from aplikasi_rating where aplikasi_id = $1 and perangkat = $2 limit 1",
+      [id, perangkat],
+    );
+    return hasil.rowCount > 0;
+  };
+
   const adaAplikasi = async (id) =>
     (await tanya("select id from aplikasi where id = $1", [id])).rowCount > 0;
 
@@ -202,7 +230,13 @@ const __ekspor = function pasangRuteAplikasi(app, { tanya }) {
       const daftar = await ambilDaftar(false);
       const app1 = daftar.find((a) => a.id === req.params.id);
       if (!app1) return res.status(404).json({ pesan: "Aplikasi tidak ditemukan." });
-      res.json({ ok: true, aplikasi: app1, rating: await ambilRating(app1.id) });
+      /* `sudahRating` dipakai halaman unduh untuk menyembunyikan borang penilaian. */
+      res.json({
+        ok: true,
+        aplikasi: app1,
+        rating: await ambilRating(app1.id),
+        sudahRating: await sudahMenilai(app1.id, perangkatDari(req.query.perangkat)),
+      });
     } catch (e) {
       res.status(500).json({ pesan: e.message });
     }
@@ -222,12 +256,29 @@ const __ekspor = function pasangRuteAplikasi(app, { tanya }) {
 
       const nama = rapikan((req.body || {}).nama, BATAS_NAMA);
       const ulasan = rapikan((req.body || {}).ulasan, BATAS_ULASAN);
+      const perangkat = perangkatDari((req.body || {}).perangkat ?? req.get("x-perangkat"));
 
-      await tanya(
-        `insert into aplikasi_rating (id, aplikasi_id, nilai, nama, ulasan)
-         values ($1, $2, $3, $4, $5)`,
-        [kodeBaru("ar"), id, nilai, nama, ulasan],
-      );
+      const tolak = async () =>
+        res.status(409).json({
+          pesan: "Perangkat ini sudah pernah memberi rating untuk aplikasi ini.",
+          sudah: true,
+          ...(await ringkasanSatu(id)),
+          rating: await ambilRating(id),
+        });
+
+      if (await sudahMenilai(id, perangkat)) return await tolak();
+
+      try {
+        await tanya(
+          `insert into aplikasi_rating (id, aplikasi_id, nilai, nama, ulasan, perangkat)
+           values ($1, $2, $3, $4, $5, $6)`,
+          [kodeBaru("ar"), id, nilai, nama, ulasan, perangkat],
+        );
+      } catch (e) {
+        /* Dua kiriman hampir bersamaan: indeks unik perangkat yang menahannya. */
+        if (e && e.code === "23505") return await tolak();
+        throw e;
+      }
 
       res.json({ ok: true, ...(await ringkasanSatu(id)), rating: await ambilRating(id) });
     } catch (e) {
