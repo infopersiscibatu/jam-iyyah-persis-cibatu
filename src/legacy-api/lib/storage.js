@@ -7,6 +7,8 @@ import { adminKlien } from "../db.js";
 
 const WADAH = "media";
 const BATAS_UKURAN = 25 * 1024 * 1024;
+/** Berkas aplikasi (APK) boleh jauh lebih besar daripada foto. */
+const BATAS_UKURAN_APK = 100 * 1024 * 1024;
 const JENIS_DIIZINKAN = {
   "image/jpeg": "jpg",
   "image/png": "png",
@@ -14,6 +16,7 @@ const JENIS_DIIZINKAN = {
   "image/gif": "gif",
   "image/svg+xml": "svg",
   "application/pdf": "pdf",
+  "application/vnd.android.package-archive": "apk",
 };
 
 function galatPengguna(pesan, status = 400) {
@@ -51,7 +54,9 @@ function base64KeBytes(data) {
 }
 
 export async function unggah({ nama, tipe, data, folder, alt, keterangan }) {
-  if (!JENIS_DIIZINKAN[tipe]) throw galatPengguna("Jenis berkas tidak diizinkan. Gunakan JPG, PNG, WEBP, GIF, SVG, atau PDF.");
+  if (!JENIS_DIIZINKAN[tipe]) {
+    throw galatPengguna("Jenis berkas tidak diizinkan. Gunakan JPG, PNG, WEBP, GIF, SVG, PDF, atau APK.");
+  }
   let isi;
   try {
     isi = base64KeBytes(data);
@@ -59,7 +64,15 @@ export async function unggah({ nama, tipe, data, folder, alt, keterangan }) {
     throw galatPengguna("Berkas kosong atau tidak terbaca.");
   }
   if (isi.length === 0) throw galatPengguna("Berkas kosong atau tidak terbaca.");
-  if (isi.length > BATAS_UKURAN) throw galatPengguna("Ukuran berkas lebih dari 25 MB. Perkecil dulu gambarnya.", 413);
+  const batas = tipe === "application/vnd.android.package-archive" ? BATAS_UKURAN_APK : BATAS_UKURAN;
+  if (isi.length > batas) {
+    throw galatPengguna(
+      tipe === "application/vnd.android.package-archive"
+        ? "Berkas aplikasi lebih dari 100 MB."
+        : "Ukuran berkas lebih dari 25 MB. Perkecil dulu gambarnya.",
+      413,
+    );
+  }
   const kunci = buatKunci(folder, nama, tipe);
   const db = await adminKlien();
   const { error } = await db.storage.from(WADAH).upload(kunci, isi, {
@@ -86,5 +99,5 @@ export function konfigurasi() {
   return { lengkap: true };
 }
 
-export { JENIS_DIIZINKAN, BATAS_UKURAN };
-export default { unggah, hapus, status, konfigurasi, JENIS_DIIZINKAN, BATAS_UKURAN };
+export { JENIS_DIIZINKAN, BATAS_UKURAN, BATAS_UKURAN_APK };
+export default { unggah, hapus, status, konfigurasi, JENIS_DIIZINKAN, BATAS_UKURAN, BATAS_UKURAN_APK };
