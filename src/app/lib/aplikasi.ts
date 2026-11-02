@@ -27,6 +27,8 @@ export type AplikasiItem = {
   /** Rata-rata bintang 1–5 (0 bila belum ada). */
   rata: number;
   jumlahRating: number;
+  /** Kapan data aplikasi terakhir diperbarui (ISO), tampil sebagai "Tanggal Update". */
+  diperbarui: string | null;
 };
 
 export type RatingAplikasi = {
@@ -47,7 +49,13 @@ async function ambilJson<T>(jalur: string, opsi: RequestInit = {}): Promise<T> {
     ...opsi,
   });
   const isi = (await jawab.json().catch(() => ({}))) as { pesan?: string };
-  if (!jawab.ok) throw new Error(isi?.pesan || `Layanan menjawab ${jawab.status}`);
+  if (!jawab.ok) {
+    const galat = new Error(isi?.pesan || `Layanan menjawab ${jawab.status}`) as Error & {
+      status?: number;
+    };
+    galat.status = jawab.status;
+    throw galat;
+  }
   return isi as T;
 }
 
@@ -83,18 +91,64 @@ export function useAplikasi(): AplikasiItem[] {
   return data;
 }
 
-export function ambilAplikasiSatu(id: string): Promise<{ aplikasi: AplikasiItem; rating: RatingAplikasi[] }> {
-  return ambilJson(`/api/aplikasi/${encodeURIComponent(id)}`);
+/**
+ * Penanda perangkat ini: dibuat sekali, disimpan di peramban, dan dipakai layanan
+ * untuk menolak rating kedua dari perangkat yang sama. Tanpa nama, tanpa data pribadi.
+ */
+const KUNCI_PERANGKAT = "persis-perangkat";
+
+export function perangkatId(): string {
+  try {
+    const ada = localStorage.getItem(KUNCI_PERANGKAT);
+    if (ada) return ada;
+    const baru = `p-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(KUNCI_PERANGKAT, baru);
+    return baru;
+  } catch {
+    return "";
+  }
+}
+
+/** Tanda di peramban bahwa aplikasi ini sudah pernah dinilai dari perangkat ini. */
+const kunciRating = (id: string) => `persis-rating-${id}`;
+
+export function sudahRatingLokal(id: string): boolean {
+  try {
+    return localStorage.getItem(kunciRating(id)) === "1";
+  } catch {
+    return false;
+  }
+}
+
+export function tandaiRatingLokal(id: string): void {
+  try {
+    localStorage.setItem(kunciRating(id), "1");
+  } catch {
+    /* Peramban yang menolak penyimpanan tetap boleh menilai sekali per sesi. */
+  }
+}
+
+export function ambilAplikasiSatu(
+  id: string,
+): Promise<{ aplikasi: AplikasiItem; rating: RatingAplikasi[]; sudahRating: boolean }> {
+  const perangkat = perangkatId();
+  return ambilJson(
+    `/api/aplikasi/${encodeURIComponent(id)}${perangkat ? `?perangkat=${encodeURIComponent(perangkat)}` : ""}`,
+  );
 }
 
 export function kirimRating(
   id: string,
   nilai: { nilai: number; nama?: string; ulasan?: string },
-): Promise<{ rata: number; jumlahRating: number; rating: RatingAplikasi[] }> {
+): Promise<{ rata: number; jumlahRating: number; rating: RatingAplikasi[]; sudah?: boolean }> {
+  const perangkat = perangkatId();
   return ambilJson(`/api/aplikasi/${encodeURIComponent(id)}/rating`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(nilai),
+    headers: {
+      "Content-Type": "application/json",
+      ...(perangkat ? { "x-perangkat": perangkat } : {}),
+    },
+    body: JSON.stringify({ ...nilai, perangkat }),
   });
 }
 
@@ -115,7 +169,10 @@ async function mintaAdmin<T>(jalur: string, opsi: RequestInit = {}): Promise<T> 
     hapusToken();
     throw new Error("Sesi sudah berakhir. Silakan masuk kembali dengan PIN.");
   }
-  const isi = (await jawab.json().catch(() => ({}))) as { pesan?: string; aplikasi?: AplikasiItem[] };
+  const isi = (await jawab.json().catch(() => ({}))) as {
+    pesan?: string;
+    aplikasi?: AplikasiItem[];
+  };
   if (!jawab.ok) throw new Error(isi?.pesan || `Layanan menjawab ${jawab.status}`);
   if (Array.isArray(isi.aplikasi)) {
     keadaan = isi.aplikasi.filter((a) => a.aktif);
@@ -176,7 +233,11 @@ export function unggahApk(
       };
       kirim.onerror = () => gagal(new Error("Unggahan terputus. Coba lagi."));
       kirim.onload = () => {
-        let isi: { ok?: boolean; pesan?: string; media?: { url: string; nama_asli?: string; ukuran?: number } } = {};
+        let isi: {
+          ok?: boolean;
+          pesan?: string;
+          media?: { url: string; nama_asli?: string; ukuran?: number };
+        } = {};
         try {
           isi = JSON.parse(kirim.responseText || "{}");
         } catch {
@@ -194,7 +255,13 @@ export function unggahApk(
           ukuran: Number(isi.media.ukuran ?? berkas.size),
         });
       };
-      kirim.send(JSON.stringify({ nama: berkas.name, tipe: berkas.type || "application/vnd.android.package-archive", data }));
+      kirim.send(
+        JSON.stringify({
+          nama: berkas.name,
+          tipe: berkas.type || "application/vnd.android.package-archive",
+          data,
+        }),
+      );
     };
     pembaca.readAsDataURL(berkas);
   });
