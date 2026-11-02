@@ -26,6 +26,7 @@ import __m22 from "./ruang-zis.js";
 import __m23 from "./ruang-donasi.js";
 import __m24 from "./ruang-perangkat.js";
 import __m25 from "./ruang-kelas.js";
+import __m26 from "./ruang-aplikasi.js";
 /**
  * Layanan PC PERSIS Cibatu: notifikasi push, database, dan penyimpanan berkas.
  *
@@ -62,6 +63,7 @@ const pasangRuteZis = __m22;
 const pasangRuteDonasi = __m23;
 const pasangRutePerangkat = __m24;
 const pasangRuteUnitKelas = __m25;
+const pasangRuteAplikasi = __m26;
 
 const PORT = Number(process.env.PORT || 8080);
 const PUSH_TOKEN = process.env.PUSH_TOKEN || "";
@@ -85,6 +87,8 @@ app.disable("x-powered-by");
 app.use("/api/wali/bayar", express.json({ limit: "40mb" }));
 /* Foto profil wali dikirim sebagai base64, jadi batasnya dinaikkan. */
 app.use("/api/wali/foto", express.json({ limit: "40mb" }));
+/* Berkas aplikasi (APK) bisa besar — dipasang sebelum batas umum 2 MB. */
+app.use("/api/unggah-apk", express.json({ limit: "140mb" }));
 app.use(express.json({ limit: "2mb" }));
 
 /** Permintaan dari halaman situs sendiri (bukan dari situs lain / alat luar). */
@@ -329,6 +333,7 @@ pasangRutePerangkat(app, { tanya, push });
 pasangRuteTahunAjaran(app, { tanya });
 pasangRuteSpmb(app, { tanya });
 pasangRuteGaleri(app, { tanya });
+pasangRuteAplikasi(app, { tanya });
 pasangRuteBerita(app, { tanya });
 pasangRuteKajian(app, { tanya });
 pasangRuteArtikel(app, { tanya });
@@ -433,6 +438,29 @@ app.post("/api/unggah", express.json({ limit: "40mb" }), async (req, res) => {
         alt ? String(alt).slice(0, 200) : null,
         keterangan ? String(keterangan).slice(0, 300) : null,
       ],
+    );
+    res.json({ ok: true, media: rows[0] });
+  } catch (e) {
+    res.status(e && e.status ? e.status : 500).json({ pesan: e.message });
+  }
+});
+
+/** Unggah berkas APK aplikasi (dari menu Download Aplikasi). Batas 100 MB. */
+app.post("/api/unggah-apk", async (req, res) => {
+  if (!bolehMenulis(req, res)) return;
+  try {
+    const { nama, tipe, data } = req.body || {};
+    const namaBerkas = String(nama || "aplikasi.apk");
+    const tipeBerkas =
+      String(tipe || "").trim() ||
+      (/\.apk$/i.test(namaBerkas) ? "application/vnd.android.package-archive" : "");
+    const berkas = await storage.unggah({ nama: namaBerkas, tipe: tipeBerkas, data, folder: "aplikasi", alt: namaBerkas });
+    const id = `md-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const { rows } = await tanya(
+      `insert into media (id, kunci, url, nama_asli, tipe, ukuran, folder, alt)
+       values ($1, $2, $3, $4, $5, $6, 'aplikasi', $7)
+       returning id, kunci, url, nama_asli, tipe, ukuran::int as ukuran, folder, alt, dibuat`,
+      [id, berkas.kunci, berkas.url, berkas.nama, berkas.tipe, berkas.ukuran, namaBerkas],
     );
     res.json({ ok: true, media: rows[0] });
   } catch (e) {
