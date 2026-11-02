@@ -9,6 +9,7 @@ import HalamanBerita from "./pages/Berita";
 import Profil from "./pages/Profil";
 import { HalamanJenjang, HalamanJenjangDetail } from "./pages/Jenjang";
 import { HalamanGaleri } from "./pages/Galeri";
+import { HalamanAplikasi } from "./pages/Aplikasi";
 import { HalamanBeritaDetail } from "./pages/BeritaDetail";
 import { HalamanSekolah } from "./pages/Sekolah";
 import { HalamanSpmb } from "./pages/Spmb";
@@ -49,6 +50,7 @@ type HalamanId =
   | "admin-tata-usaha"
   | "admin-zis"
   | "galeri"
+  | "aplikasi"
   | "kontak"
   | "berita-detail";
 
@@ -64,6 +66,7 @@ function hashHalaman(halaman: string, slug: string | null): string {
   if (halaman === "artikel-detail" && slug) return `#/artikel/${slug}`;
   if (halaman === "donasi-detail" && slug) return `#/info/${slug}`;
   if (halaman === "galeri" && slug) return `#/galeri/${slug}`;
+  if (halaman === "aplikasi") return slug ? `#/aplikasi/${slug}` : "#/aplikasi";
   if (halaman === "beranda") {
     if (slug && slug.startsWith("pengumuman:")) return `#/beranda/pengumuman/${slug.slice("pengumuman:".length)}`;
     if (slug && slug.startsWith("agenda:")) return `#/beranda/agenda/${slug.slice("agenda:".length)}`;
@@ -107,6 +110,8 @@ function ruteDariAlamat(alamat: string): RuteApp {
   if (nama === "jenjang" && bagian[1]) return { halaman: "jenjang-detail", slug: bagian[1] };
   /* Kajian dengan sasaran tertentu: jadwal yang dibuka. */
   if (nama === "kajian" && bagian[1]) return { halaman: "kajian", slug: bagian[1] };
+  /* Daftar aplikasi: #/aplikasi atau rincian satu aplikasi #/aplikasi/<id>. */
+  if (nama === "aplikasi") return { halaman: "aplikasi", slug: bagian[1] ?? null };
   /* Beranda dengan sasaran tertentu: pengumuman atau agenda yang dibuka. */
   if (nama === "beranda" && (bagian[1] === "pengumuman" || bagian[1] === "agenda") && bagian[2]) {
     return { halaman: "beranda", slug: `${bagian[1]}:${bagian[2]}` };
@@ -305,6 +310,13 @@ export default function App() {
       ) : null}
       {tab === "ppdb" ? <HalamanSpmb /> : null}
       {tab === "galeri" ? <HalamanGaleri sasaran={slug} /> : null}
+      {tab === "aplikasi" ? (
+        <HalamanAplikasi
+          sasaran={slug}
+          onBuka={(id) => pindah("aplikasi", id)}
+          onKembali={() => pindah("aplikasi")}
+        />
+      ) : null}
       {tab === "kontak" ? <HalamanKontak /> : null}
       {tab === "kajian" ? <HalamanKajian sasaran={slug} /> : null}
       {tab === "info" ? <HalamanDonasi onOpen={(s) => pindah("donasi-detail", s)} /> : null}
