@@ -9,6 +9,7 @@ import {
   TombolSimpan,
 } from "../../components/admin/Form";
 import PilihGambar from "../../components/admin/PilihGambar";
+import { EditorKaya } from "../../components/admin/EditorKaya";
 import { Icon } from "../../components/Icons";
 import { beritahu, mintaKonfirmasi } from "../../lib/notifikasiAdmin";
 import { pakaiSimpan } from "../../lib/panelSimpan";
@@ -395,13 +396,13 @@ function BorangAplikasi({
           maks={160}
           petunjuk="Tampil di bawah nama aplikasi, seperti nama pengembang di Play Store."
         />
-        <AreaTeks
+        <EditorKaya
           testid="aplikasi-deskripsi"
           label="Deskripsi aplikasi"
           nilai={isian.deskripsi}
           onUbah={(v) => ubah("deskripsi", v)}
-          baris={5}
-          placeholder="Aplikasi resmi PC PERSIS Cibatu untuk jama'ah…"
+          petunjuk="Pakai tombol di atas untuk huruf tebal, poin, tabel, dan tautan. Tampil di halaman unduh aplikasi."
+          unggah={(f) => unggahBerkas(f, "aplikasi").then((r) => r.url)}
         />
         <AreaTeks
           testid="aplikasi-fitur"
