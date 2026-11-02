@@ -505,7 +505,7 @@ function RinciAplikasi({ id, awal }: { id: string; awal?: AplikasiItem }) {
                 {ukuranTerbaca(app.berkasUkuran) || "—"}
               </p>
             </div>
-            <div data-testid="tanggal-update" className="col-span-2">
+            <div data-testid="tanggal-update">
               <p className="text-[9px] font-extrabold tracking-[0.12em] text-ink-400 uppercase">
                 Tanggal Update
               </p>
@@ -513,7 +513,7 @@ function RinciAplikasi({ id, awal }: { id: string; awal?: AplikasiItem }) {
                 {app.diperbarui ? tanggalPanjang(app.diperbarui) : "—"}
               </p>
             </div>
-            <div className="col-span-2">
+            <div>
               <p className="text-[9px] font-extrabold tracking-[0.12em] text-ink-400 uppercase">
                 Pengembang
               </p>
