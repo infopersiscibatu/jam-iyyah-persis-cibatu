@@ -27,6 +27,7 @@ import {
 import { DaftarPengumuman, KategoriPengumuman } from "./admin/Pengumuman";
 import { DaftarAgenda, KategoriAgenda } from "./admin/Agenda";
 import { Carousel, FooterBeranda, SusunanGridMenu, SusunanNavigasi } from "./admin/Beranda";
+import { DaftarAplikasi } from "./admin/DownloadAplikasi";
 import { AdminUnit, AdminZis } from "./admin/Unit";
 import { PerangkatNotifikasi } from "./admin/PerangkatNotifikasi";
 import MasukAdmin from "./admin/Masuk";
@@ -206,6 +207,7 @@ const KELOMPOK = [
 
 /** Menu yang berdiri sendiri, tanpa sub-menu (mis. unit kerja di panel admin). */
 const MENU_TUNGGAL = [
+  { id: "aplikasi", label: "Download Aplikasi", ikon: "newspaper" },
   { id: "unit", label: "Admin Unit", ikon: "school" },
   { id: "unit-zis", label: "Admin ZIS", ikon: "heart" },
   { id: "perangkat", label: "Perangkat Notifikasi", ikon: "bell" },
@@ -222,7 +224,7 @@ const SEKSI = [
     label: "Konten Website",
     isi: ["berita", "artikel", "kajian", "agenda", "pengumuman", "galeri", "kontak", "spmb"],
   },
-  { id: "situs", label: "Situs", isi: ["beranda", "perangkat"] },
+  { id: "situs", label: "Situs", isi: ["beranda", "aplikasi", "perangkat"] },
   { id: "unit", label: "Admin Unit", isi: ["unit", "unit-zis"] },
 ] as const;
 
@@ -284,6 +286,7 @@ const JUDUL: Record<IdMenu, string> = {
   "beranda-grid": "Susunan Grid Menu",
   "beranda-nav": "Susunan Navigasi",
   "beranda-footer": "Footer",
+  aplikasi: "Download Aplikasi",
   unit: "Admin Unit",
   "unit-zis": "Admin ZIS",
   perangkat: "Perangkat Notifikasi",
@@ -677,6 +680,7 @@ export default function HalamanAdmin({
         {menu === "beranda-grid" ? <SusunanGridMenu /> : null}
         {menu === "beranda-nav" ? <SusunanNavigasi /> : null}
         {menu === "beranda-footer" ? <FooterBeranda /> : null}
+        {menu === "aplikasi" ? <DaftarAplikasi /> : null}
         {menu === "unit" ? <AdminUnit /> : null}
         {menu === "unit-zis" ? <AdminZis /> : null}
         {menu === "perangkat" ? <PerangkatNotifikasi /> : null}
